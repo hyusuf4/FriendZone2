@@ -1,11 +1,9 @@
 from rest_framework import serializers
 from .models import Author, FriendRequest, Friends,Post,Comment
 from django.utils import timezone
-<<<<<<< HEAD
-from django.utils.dateparse import parse_datetime
-=======
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+from django.utils.dateparse import parse_datetime
 
 
 
@@ -34,7 +32,6 @@ class LoginSerializer(serializers.Serializer):
             return user
         raise serializers.ValidationError("Incorrect Crendentials")
 
->>>>>>> 4722681af9ee7eae258505a42491082944211a65
 
 class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
@@ -89,14 +86,9 @@ class FriendsSerializer(serializers.ModelSerializer):
 
 class PostSerializer(serializers.ModelSerializer):
     class Meta:
-<<<<<<< HEAD
         model = Post
         fields = ('pk','source','origin','content-type','publicationDate', 'content', 'title', 'permission','permitted_authors','author','unlisted')
 
-=======
-        model = Post 
-        fields = ('pk','source','origin','contentType','publicationDate', 'content', 'title', 'permission','permitted_authors','author','unlisted')
->>>>>>> 4722681af9ee7eae258505a42491082944211a65
 
 
 class CommentSerializer(serializers.ModelSerializer):
