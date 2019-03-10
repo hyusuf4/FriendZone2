@@ -89,8 +89,4 @@ class Comment(models.Model):
 # class Image(models.Model):
 
 #     post_id = models.ForeignKey(Post, on_delete=models.CASCADE,null=True)
-<<<<<<< HEAD
 #     img = models.ImageField(null=True)
-=======
-#     img = models.ImageField(null=True) 
->>>>>>> 4722681af9ee7eae258505a42491082944211a65
