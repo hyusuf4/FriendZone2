@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils import timezone
 import uuid
+from django.contrib.auth.models import User
+
 
 # Create your models here.
 
@@ -11,6 +13,7 @@ class Author(models.Model):
     userName=models.CharField(max_length=30)
     password=models.CharField(max_length=30)
     hostName=models.URLField()
+    owner=models.ForeignKey(User,related_name="author", on_delete=models.CASCADE,null=True)
     githubUrl=models.URLField()
 
     def __str__(self):
@@ -54,7 +57,7 @@ class Post(models.Model):
     source = models.URLField(null=True, blank=True)
     origin = models.URLField(null=True, blank=True)
     contentType = models.CharField(max_length=32, choices=contentTypeChoice,default='text/plain' )
-    publicationDate=models.DateTimeField('date published')
+    publicationDate=models.DateTimeField(auto_now_add=True)
     content=models.TextField()
     title=models.CharField(max_length=50)
     permission = models.CharField(max_length=2, choices=PERMISSION_OPTIONS, default='P')
@@ -86,4 +89,8 @@ class Comment(models.Model):
 # class Image(models.Model):
 
 #     post_id = models.ForeignKey(Post, on_delete=models.CASCADE,null=True)
+<<<<<<< HEAD
 #     img = models.ImageField(null=True)
+=======
+#     img = models.ImageField(null=True) 
+>>>>>>> 4722681af9ee7eae258505a42491082944211a65
