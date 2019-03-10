@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 import uuid
 from django.contrib.auth.models import User
 
@@ -14,7 +15,7 @@ class Author(models.Model):
     hostName=models.URLField()
     owner=models.ForeignKey(User,related_name="author", on_delete=models.CASCADE,null=True)
     githubUrl=models.URLField()
-    
+
     def __str__(self):
         return self.userName
 
@@ -23,10 +24,11 @@ class Author(models.Model):
 class FriendRequest(models.Model):
     from_author= models.ForeignKey(Author,on_delete=models.CASCADE, related_name="friend_request_sent",null=True)
     to_author=models.ForeignKey(Author,on_delete=models.CASCADE, related_name="friend_request_recieved",null=True)
-    created=models.DateTimeField()
+    created=models.DateTimeField(blank=True, null=True)
     accepted=models.BooleanField(default=False)
     regected=models.BooleanField(default=False)
-    
+    test=models.DateTimeField(blank=True, null=True)
+
     def __str__(self):
         return "You recieved a friend request from %s to %s"%(self.from_author, self.to_author)
 
@@ -59,7 +61,7 @@ class Post(models.Model):
     content=models.TextField()
     title=models.CharField(max_length=50)
     permission = models.CharField(max_length=2, choices=PERMISSION_OPTIONS, default='P')
-    permitted_authors = models.TextField(null=True) 
+    permitted_authors = models.TextField(null=True)
     unlisted=models.BooleanField(default=False)
     author= models.ForeignKey(Author,on_delete=models.CASCADE,null=True)
 
@@ -80,13 +82,11 @@ class Comment(models.Model):
     author=models.ForeignKey(Author, on_delete=models.CASCADE,null=True)
     postid=models.ForeignKey(Post,on_delete=models.CASCADE,null=True)
     published=models.DateTimeField('date published')
-    
+
     def __str__(self):
         return self.comment
 
 # class Image(models.Model):
 
 #     post_id = models.ForeignKey(Post, on_delete=models.CASCADE,null=True)
-#     img = models.ImageField(null=True) 
-
-
+#     img = models.ImageField(null=True)
