@@ -34,7 +34,7 @@ class FriendsSerializer(serializers.ModelSerializer):
 class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post 
-        fields = ('pk','source','origin','content-type','publicationDate', 'content', 'title', 'permission','permitted_authors','author','unlisted')
+        fields = ('pk','source','origin','contentType','publicationDate', 'content', 'title', 'permission','permitted_authors','author','unlisted')
 
 
 

@@ -40,15 +40,56 @@ def author_details(request, pk):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+@api_view(['GET', 'POST'])
 def public_posts(request):
-    pass
+    try:
+        posts = Post.objects.all()
+        print(posts)
+    except Post.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    if request.method=='GET':
+        serializer = PostSerializer(posts,many=True)
+        return Response(serializer.data)
+
+    else:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    # elif request.method == 'POST':
+    #     data= JSONParser().parse(request)
+    #     serializer = PostSerializer(Post, data=data)
+    #     if serializer.is_valid():
+    #         serializer.update(posts,data)
+    #         return Response(serializer.data)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 def author_post(request):
     pass
 
 def post_details(request):
     pass
-def post_comments(request):
-    pass
+def post_comments(request,pk):
+    try:
+         #= Question.objects.filter(user=request.user).values()
+        posts = Post.objects.get(pk=pk)
+        print(posts)
+    except Post.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    if request.method=='GET':
+        serializer = PostSerializer(posts,many=True)
+        return Response(serializer.data)
+
+    else:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    # elif request.method == 'POST':
+    #     data= JSONParser().parse(request)
+    #     serializer = PostSerializer(Post, data=data)
+    #     if serializer.is_valid():
+    #         serializer.update(posts,data)
+    #         return Response(serializer.data)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 def friend_request(request):
     pass

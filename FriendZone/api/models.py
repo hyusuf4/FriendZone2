@@ -52,7 +52,7 @@ class Post(models.Model):
     source = models.URLField(null=True, blank=True)
     origin = models.URLField(null=True, blank=True)
     contentType = models.CharField(max_length=32, choices=contentTypeChoice,default='text/plain' )
-    publicationDate=models.DateTimeField('date published')
+    publicationDate=models.DateTimeField(db_column='publicationDate')
     content=models.TextField()
     title=models.CharField(max_length=50)
     permission = models.CharField(max_length=2, choices=PERMISSION_OPTIONS, default='P')
