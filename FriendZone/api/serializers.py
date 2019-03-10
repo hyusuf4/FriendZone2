@@ -3,6 +3,7 @@ from .models import Author, FriendRequest, Friends,Post,Comment
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+from django.utils.dateparse import parse_datetime
 
 
 
@@ -34,9 +35,9 @@ class LoginSerializer(serializers.Serializer):
 
 class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Author 
+        model = Author
         fields=('pk','firstName','lastName','userName','hostName','githubUrl')
-    
+
     def update(self, instance, validated_data):
         instance.firstName = validated_data.get('firstName', instance.firstName)
         instance.lastName = validated_data.get('lastName', instance.lastName)
@@ -44,16 +45,37 @@ class AuthorSerializer(serializers.ModelSerializer):
         instance.githubUrl = validated_data.get('githubUrl', instance.githubUrl)
         instance.save()
         return instance
-    
-    
-        
+
+
+
 class FriendRequestSerializer(serializers.ModelSerializer):
+    # pk = serializers.PrimaryKeyRelatedField(queryset=FriendRequest.objects.all())
+    created = serializers.DateTimeField(default=timezone.now())
+    accepted = serializers.BooleanField(default=False)
+    regected = serializers.BooleanField(default=False)
+
     class Meta:
         model=FriendRequest
         fields=('pk','from_author',
         'to_author',
         'created','accepted',
         'regected')
+
+    def create(self, validated_data):
+        new_instance = FriendRequest.objects.create(\
+            from_author=validated_data.get('from_author'),\
+            to_author=validated_data.get('to_author'),\
+            created=timezone.now(),\
+            accepted=True,\
+            regected=True,\
+            # test=parse_datetime(validated_data.get('test')).strftime("%Y-%m-%d %H:%M:%S")
+            test=parse_datetime("2012-04-23T18:25:43.511Z").strftime("%Y-%m-%d %H:%M:%S")
+
+        )
+
+        new_instance.save()
+
+        return new_instance
 
 class FriendsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -64,8 +86,9 @@ class FriendsSerializer(serializers.ModelSerializer):
 
 class PostSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Post 
-        fields = ('pk','source','origin','contentType','publicationDate', 'content', 'title', 'permission','permitted_authors','author','unlisted')
+        model = Post
+        fields = ('pk','source','origin','content-type','publicationDate', 'content', 'title', 'permission','permitted_authors','author','unlisted')
+
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -78,6 +101,3 @@ class CommentSerializer(serializers.ModelSerializer):
 #     class Meta:
 #         model=Image
 #         fields=('pk','post_id','img')
-
-
-
