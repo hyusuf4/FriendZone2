@@ -21,6 +21,10 @@ urlpatterns = [
     path('api/authors/', views.authors_list),
     #Retrieves this specific authors details
     path('api/authors/<pk>', views.author_details),
+
+    path('api/author/posts',views.post_visibleToAuth),
+
+    
     #All posts marked as public on the server
     path('api/posts/',views.public_posts),
     #All posts made by this specific author, visible to authenticated user

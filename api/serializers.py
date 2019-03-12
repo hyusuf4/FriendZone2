@@ -1,9 +1,13 @@
 from rest_framework import serializers
-from .models import Author, FriendRequest, Friends,Post,Comment
+from .models import Author, FriendRequest, Friends,Post,Comment,VisibleToPost,Categories
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.utils.dateparse import parse_datetime
+from django.utils import timezone
+from datetime import datetime
+from django.db.models import Q
+
 
 
 
@@ -86,16 +90,72 @@ class FriendsSerializer(serializers.ModelSerializer):
         'date')
 
 class PostSerializer(serializers.ModelSerializer):
+    publicationDate = serializers.DateTimeField(default=datetime.now())
     class Meta:
         model = Post
-        fields = ('pk','source','origin','content-type','publicationDate', 'content', 'title', 'permission','permitted_authors','author','unlisted')
+        fields = ('pk','source','origin','contentType','publicationDate', 'content', 'title', 'permission','author','unlisted')
+    
+    def create(self, validated_data,author):
+
+        new_instance = Post.objects.create(content=validated_data.get('content'),title=validated_data.get('title'), permission=validated_data.get('permission'),author=author,publicationDate=datetime.now())
+        if validated_data.get('categories'):
+            for category in validated_data.get('categories'):
+                categories=Categories.create(post=new_instance,category=category)
+        if validated_data.get('permission') == 'F':
+            friends=Friends.objects.filter(Q(author1=author)| Q(author2=author))
+            for friend in friends:
+                if friend.author1 == author:
+                    new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author2)
+                elif friend.author2 == author:
+                    new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author1)
+        elif validated_data.get('permission') == 'FH':
+            friends=Friends.objects.filter(Q(author1=author)| Q(author2=author))
+            for friend in friends:
+                if friend.author1 == author and friend.author2.hostName == 'http://127.0.0.1:8000':
+                    new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author2)
+                elif friend.author2 == author and friend.author1.hostName == 'http://127.0.0.1:8000':
+                    new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author1)
+        elif validated_data.get('permission') == 'FF':
+            friends=Friends.objects.filter(Q(author1=author)| Q(author2=author))
+            foaf=set()
+            for friend in friends:
+                if friend.author1 == author:
+                    foaf1=Friends.objects.filter(Q(author1=friend.author2)| Q(author2=friend.author2)).values('author1')
+                    foaf2=Friends.objects.filter(Q(author1=friend.author2)| Q(author2=friend.author2)).values('author2')
+                    if foaf1 != author:
+                        foaf.add(foaf1)
+                    if foaf1 != author:
+                        foaf.add(foaf2)
+                # elif friend.author2 == author:
+                #     foaf1=Friends.objects.filter(Q(author1=friend.author2)| Q(author2=friend.author2)).values('author1')
+                #     foaf2=Friends.objects.filter(Q(author1=friend.author2)| Q(author2=friend.author2)).values('author2')
+                #     if foaf1 != author:
+                #         foaf.add(foaf1)
+                #     if foaf1 != author:
+                #         foaf.add(foaf2)
+            print(foaf)
+            
+        return new_instance
 
 
+class VisibleToPostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=VisibleToPost
+        fields=('post','author')
+     
+    def get_visible(post):
+        self.object.filter(post=post)
+    
 
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model= Comment
         fields=('pk','comment','author','postid','published','content-type')
+
+
+class Categories(serializers.ModelSerializer):
+    model=Categories
+    fields=('post','category')
 
 
 # class ImageSerializer(serializers.ModelSerializer):

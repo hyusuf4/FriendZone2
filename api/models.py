@@ -3,7 +3,6 @@ from django.utils import timezone
 import uuid
 from django.contrib.auth.models import User
 
-
 # Create your models here.
 
 class Author(models.Model):
@@ -13,7 +12,7 @@ class Author(models.Model):
     userName=models.CharField(max_length=30)
     password=models.CharField(max_length=30)
     hostName=models.URLField()
-    owner=models.ForeignKey(User,related_name="author", on_delete=models.CASCADE,null=True)
+    owner=models.ForeignKey(User, on_delete=models.CASCADE,null=True)
     githubUrl=models.URLField()
 
     def __str__(self):
@@ -37,6 +36,9 @@ class Friends(models.Model):
     author2=models.ForeignKey(Author,on_delete=models.CASCADE,related_name='friend2',null=True)
     date=models.DateTimeField()
 
+
+
+
 class Post(models.Model):
     PERMISSION_OPTIONS = (
         ("M", "me"),
@@ -57,17 +59,26 @@ class Post(models.Model):
     source = models.URLField(null=True, blank=True)
     origin = models.URLField(null=True, blank=True)
     contentType = models.CharField(max_length=32, choices=contentTypeChoice,default='text/plain' )
-    publicationDate=models.DateTimeField(auto_now_add=True)
+    publicationDate=models.DateTimeField()
     content=models.TextField()
     title=models.CharField(max_length=50)
     permission = models.CharField(max_length=2, choices=PERMISSION_OPTIONS, default='P')
-    permitted_authors = models.TextField(null=True)
     unlisted=models.BooleanField(default=False)
     author= models.ForeignKey(Author,on_delete=models.CASCADE,null=True)
 
     def __str__(self):
         return self.title
 
+class Categories(models.Model):
+    post=models.ForeignKey(Post,on_delete=models.CASCADE,null=True)
+    category=models.CharField(max_length=50)
+
+
+class VisibleToPost(models.Model):
+    post=models.ForeignKey(Post,on_delete=models.CASCADE,null=True)
+    author=models.ForeignKey(Author,on_delete=models.CASCADE,null=True)
+    
+   
 class Comment(models.Model):
     contentTypeChoice = (
         ('text/markdown', 'text/markdown'),
@@ -81,10 +92,14 @@ class Comment(models.Model):
     comment_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     author=models.ForeignKey(Author, on_delete=models.CASCADE,null=True)
     postid=models.ForeignKey(Post,on_delete=models.CASCADE,null=True)
-    published=models.DateTimeField('date published')
+    published=models.DateTimeField()
 
     def __str__(self):
         return self.comment
+
+
+
+
 
 # class Image(models.Model):
 

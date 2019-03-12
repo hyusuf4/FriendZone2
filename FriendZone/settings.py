@@ -126,6 +126,8 @@ USE_L10N = True
 
 USE_TZ = True
 
+DEBUG_PROPAGATE_EXCEPTIONS=True
+
 
 
 # Static files (CSS, JavaScript, Images)
