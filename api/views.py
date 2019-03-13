@@ -9,22 +9,56 @@ from django.core import serializers
 from django.utils.dateparse import parse_datetime
 from rest_framework.permissions import IsAuthenticated
 from django.http import JsonResponse
+from django.db.models import Q
 
 
 @api_view(['GET', 'POST'])
 #@permission_classes((IsAuthenticated,))
 def authors_list(request):
+    authors_to_pass=[]
     if request.method == 'GET':
         authors = Author.objects.all()
         serializer = AuthorSerializer(authors,many=True)
         return Response(serializer.data)
 
     elif request.method == 'POST':
-        serializer = AuthorSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        #queryset = Author.objects.all().values_list('userName',flat=True)
+        
+        
+        #print(queryset[0])
+        users_search = JSONParser().parse(request)
+        print("**********************************************************************")
+        print(users_search['users_search'])
+        users_search=users_search['users_search']
+        if users_search is not "":
+            #print(queryset)
+            queryset=Author.objects.filter(Q(userName__startswith=users_search))
+            #queryset = queryset.filter(userName=users_search['users_search']).values_list('userName',flat=True)
+            print("**********************************************************************")
+            print("**********************************************************************")
+            print("**********************************************************************")
+            print("**********************************************************************")
+            """ for q in queryset:
+                author = Author.objects.get(userName=q)
+                print("here is the serializer")
+                serializer = AuthorSerializer(author)
+                print(serializer.data) """
+            print(queryset)
+        
+            for q in queryset:
+                print(q)
+                author = Author.objects.get(userName=q)
+                serializer = AuthorSerializer(author)
+                print(serializer.data)
+                authors_to_pass.append(serializer.data)
+
+
+            
+            return Response(authors_to_pass)
+        else:
+            serializer = AuthorSerializer(authors,many=True)
+            return Response(serializer.data)
+       
 
 @api_view(['GET', 'PUT'])
 @permission_classes((IsAuthenticated,))
