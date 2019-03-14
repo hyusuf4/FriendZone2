@@ -46,9 +46,10 @@ def authors_list(request):
             print(queryset)
         
             for q in queryset:
-                print(q)
-                author = Author.objects.get(userName=q)
-                serializer = AuthorSerializer(author)
+                print(type(q))
+                #author = Author.objects.get(userName=q)
+                #print(type(author))
+                serializer = AuthorSerializer(q)
                 print(serializer.data)
                 authors_to_pass.append(serializer.data)
 
