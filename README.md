@@ -1,5 +1,5 @@
 # FriendZone2
-This is the updated version of FriendZone
+This is the updated version of FriendZone. Serves as the Backend API to Friendzone_front_end
 
 ~~~~
 FriendZone2
