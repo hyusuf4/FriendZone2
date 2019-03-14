@@ -13,7 +13,7 @@ FriendZone2
 └── venv
 ~~~~
 
-### Step 1 Set up virtual environment (if you don't have a virtual environment)
+### Step 1. Set up virtual environment (if you don't have a virtual environment)
   Run commands to create virtual environment
 ~~~~
   virtualenv venv --python=python3
@@ -23,20 +23,20 @@ FriendZone2
   source venv/bin/activate
   ~~~~
 
-### Step 2 Install dependencies:
+### Step 2. Install dependencies:
   Run command in the root folder
   ~~~~
   pip install requirements.txt
   ~~~~
   
-### Step 3 Handle migrations:
+### Step 3. Handle migrations:
   Run commands
   ~~~~
   python3 manage.py makemigrations
   python3 manage.py migrate
   ~~~~
 
-### Step 4 Runserver on localhost
+### Step 4. Runserver on localhost
   Run command in the root folder
   ~~~~
   python3 manage.py runserver
