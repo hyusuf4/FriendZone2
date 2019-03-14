@@ -36,7 +36,7 @@ FriendZone2
   python3 manage.py migrate
   ~~~~
 
-### Step 4. Runserver on localhost
+### Step 4. Run server on localhost
   Run command in the root folder
   ~~~~
   python3 manage.py runserver
