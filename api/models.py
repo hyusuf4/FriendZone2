@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 
 class Author(models.Model):
     author_id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
-    firstName=models.CharField(max_length=30,blank=True)
+    firstName=models.CharField(max_length=30,blank=Truem null=True)
     lastName=models.CharField(max_length=30)
     userName=models.CharField(max_length=30)
     password=models.CharField(max_length=30)
