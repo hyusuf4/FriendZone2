@@ -39,6 +39,8 @@ class LoginSerializer(serializers.Serializer):
 
 
 class AuthorSerializer(serializers.ModelSerializer):
+
+    firstName=serializers.CharField(required=False)
     class Meta:
         model = Author
         fields=('pk','firstName','lastName','userName','hostName','githubUrl')
