@@ -64,21 +64,21 @@ class Post(models.Model):
     title=models.CharField(max_length=50)
     permission = models.CharField(max_length=2, choices=PERMISSION_OPTIONS, default='P')
     unlisted=models.BooleanField(default=False)
-    author= models.ForeignKey(Author,on_delete=models.CASCADE,null=True)
+    author= models.ForeignKey(Author,related_name="auth",on_delete=models.CASCADE,null=True)
 
     def __str__(self):
         return self.title
 
 class Categories(models.Model):
-    post=models.ForeignKey(Post,on_delete=models.CASCADE,null=True)
+    post=models.ForeignKey(Post,related_name="post_categories",on_delete=models.CASCADE,null=True)
     category=models.CharField(max_length=50)
 
 
 class VisibleToPost(models.Model):
-    post=models.ForeignKey(Post,on_delete=models.CASCADE,null=True)
+    post=models.ForeignKey(Post,related_name="visible_post",on_delete=models.CASCADE,null=True)
     author=models.ForeignKey(Author,on_delete=models.CASCADE,null=True)
-    
-   
+
+
 class Comment(models.Model):
     contentTypeChoice = (
         ('text/markdown', 'text/markdown'),
