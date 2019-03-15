@@ -90,6 +90,17 @@ class FriendsSerializer(serializers.ModelSerializer):
         fields=('pk','author1',
         'author2',
         'date')
+    def create(self, validated_data):
+        # print(111, validated_data, 222)
+        new_instance = Friends.objects.create(\
+            author1=validated_data.get('to_author'),\
+            author2=validated_data.get('from_author'),\
+            date=timezone.now()
+        )
+
+        new_instance.save()
+
+        return new_instance
 
 class PostSerializer(serializers.ModelSerializer):
     publicationDate = serializers.DateTimeField(default=datetime.now())
@@ -159,6 +170,20 @@ class Categories(serializers.ModelSerializer):
     model=Categories
     fields=('post','category')
 
+class FollowingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Following
+        fields = ('follower', 'following', 'created')
+
+    def create(self, validated_data):
+        new_instance = Following.objects.create(\
+            follower=validated_data.get("requester_id"),\
+            following=validated_data.get("requestee_id"),\
+            created=timezone.now()\
+        )
+        new_instance.save()
+
+        return new_instance
 
 # class ImageSerializer(serializers.ModelSerializer):
 #     class Meta:
