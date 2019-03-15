@@ -55,10 +55,6 @@ class ListAuthors(APIView):
                 serializer = AuthorSerializer(author)
                 print(serializer.data)
                 authors_to_pass.append(serializer.data)
-
-
-            print("here is the list")
-            print(authors_to_pass)
             return Response(authors_to_pass)
         else:
             serializer = AuthorSerializer(authors,many=True)
@@ -351,7 +347,7 @@ def send_friend_request(request):
     requester = Author.objects.get(pk=requester_id)
     requestee = Author.objects.get(pk=requestee_id)
     temp_dict = {"requester_id" :requester , "requestee_id":requestee}
-    print("!!!!!!!!!", enroll_following(temp_dict))
+    enroll_following(temp_dict)
 
     """ TODO: user story => As an author, I want to know if I have friend requests."""
 
@@ -387,8 +383,9 @@ def unfriend(request):
     """ TODO: 1, remove from friend list | 2, remove from following list"""
     # delete from friend list
     data = JSONParser().parse(request)
-    requester = Author.objects.get(pk=data.get("requester"))
-    requestee = Author.objects.get(pk=data.get("requestee"))
+    # print("???????????????????????????", data.get("requester"))
+    requester = Author.objects.get(pk=data.get("from_author"))
+    requestee = Author.objects.get(pk=data.get("to_author"))
 
     try:
         req = Friends.objects.filter(Q(author1=requester , author2=requestee) | Q(author1=requestee , author2=requester))
@@ -397,11 +394,15 @@ def unfriend(request):
     except FriendRequest.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
-    try:
-        req = Following.objects.get(follower=requester, following=requestee)
+    req = Following.objects.filter(follower=requester, following=requestee)
+    if req.exists():
         req.delete()
-    except FriendRequest.DoesNotExist:
+    else:
         return Response(status=status.HTTP_404_NOT_FOUND)
+    # try:
+    # except FriendRequest.DoesNotExist:
+    #     raise
+    #     return Response(status=status.HTTP_404_NOT_FOUND)
 
     # temp_dict = {"follower" :a1 , "following":a2}
     # unfollow(temp_dict)
@@ -440,6 +441,9 @@ def make_them_friends(author_one, author_two, existing_request):
 
 def enroll_following(validated_data):
     """TODO check duplicate here"""
+    instance = Following.objects.filter(follower=validated_data.get("requester"), following=validated_data.get(requestee))
+    if instance.exists():
+        return Response(HTTP_200_OK)
     serializer = FollowingSerializer(data=validated_data)
     serializer.create(validated_data)
     if serializer.is_valid():
