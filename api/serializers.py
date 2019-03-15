@@ -81,16 +81,20 @@ class FriendRequestSerializer(serializers.ModelSerializer):
             from_author=validated_data.get('from_author'),\
             to_author=validated_data.get('to_author'),\
             created=timezone.now(),\
-            accepted=True,\
-            regected=True,\
-            # test=parse_datetime(validated_data.get('test')).strftime("%Y-%m-%d %H:%M:%S")
-            test=parse_datetime("2012-04-23T18:25:43.511Z").strftime("%Y-%m-%d %H:%M:%S")
-
+            accepted=False,\
+            regected=False
         )
 
         new_instance.save()
 
         return new_instance
+
+    def update(self, instance, validated_data):
+        instance.accepted = validated_data.get("accepted")
+        instance.regected = validated_data.get("regected")
+        instance.save()
+        return instance
+
 
 class FriendsSerializer(serializers.ModelSerializer):
     class Meta:

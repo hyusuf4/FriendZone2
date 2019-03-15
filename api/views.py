@@ -1,5 +1,5 @@
-from api.models import Author, FriendRequest, Friends,Post,Comment,VisibleToPost
-from api.serializers import AuthorSerializer, FriendRequestSerializer, FriendsSerializer,PostSerializer,CommentSerializer,VisibleToPostSerializer,CategoriesSerializer
+from api.models import Author, FriendRequest, Friends,Post,Comment,VisibleToPost, Following
+from api.serializers import AuthorSerializer, FriendRequestSerializer, FriendsSerializer,PostSerializer,CommentSerializer,VisibleToPostSerializer,CategoriesSerializer, FollowingSerializer
 from rest_framework import status
 from rest_framework.decorators import api_view,permission_classes
 from rest_framework.views import APIView
@@ -300,7 +300,7 @@ class PostComments(APIView):
 
 
 @api_view(['POST'])
-def friend_request(request):
+def send_friend_request(request):
 
     if request.method != 'POST':
         # invalid method
@@ -315,7 +315,10 @@ def friend_request(request):
     try:
         existing_request = FriendRequest.objects.get(to_author=requester_id, from_author=requestee_id)
         """make them friends"""
-        enroll_following(requester_id, requestee_id)
+        requester = Author.objects.get(pk=requester_id)
+        requestee = Author.objects.get(pk=requestee_id)
+        temp_dict = {"requester_id" :requester , "requestee_id":requestee}
+        enroll_following(temp_dict)
         return make_them_friends(requester_id, requestee_id, existing_request)
     except FriendRequest.DoesNotExist:
         pass
@@ -324,8 +327,9 @@ def friend_request(request):
 
     """ check duplicate requests"""
     try:
-        existing_request = FriendRequest.objects.get(from_author=requester_id, to_author=requestee_id)
-        return Response(serializer.data)
+        existing_request = FriendRequest.objects.filter(Q(from_author=requester_id) & Q(to_author=requestee_id)).exists()
+        if existing_request:
+            return Response(status=status.HTTP_201_CREATED)
     except FriendRequest.DoesNotExist:
         pass
     except FriendRequest.MultipleObjectsReturned:
@@ -336,19 +340,21 @@ def friend_request(request):
 
     if serializer.is_valid():
         serializer.save()
-        return Response(serializer.data)
+        response = Response(serializer.data)
     else:
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    temp_dict = {"requester_id" :requester_id , "requestee_id":requestee_id}
-    enroll_following(temp_dict)
+    requester = Author.objects.get(pk=requester_id)
+    requestee = Author.objects.get(pk=requestee_id)
+    temp_dict = {"requester_id" :requester , "requestee_id":requestee}
+    print("!!!!!!!!!", enroll_following(temp_dict))
 
     """ TODO: user story => As an author, I want to know if I have friend requests."""
 
     return Response(status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
-def friend_result(request):
+def respond_to_friend_request(request):
     """ modify friend request entry values (accept and reject)"""
     if request.method != 'POST':
         # invalid method
@@ -356,17 +362,20 @@ def friend_result(request):
 
     data = JSONParser().parse(request)
     try:
-        req = FriendRequest.objects.get(from_author=data.from_author, to_author=data.to_author)
+        req = FriendRequest.objects.filter(Q(from_author=data.get("from_author")) & Q(to_author=data.get("to_author")))
     except FriendRequest.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
-    serializer = FriendRequestSerializer(FriendRequest,data=data)
+    temp_dict = {"from_author" :data.get("from_author") , "to_author":data.get("to_author"), "accepted":data.get("accepted") , "regected":data.get("regected")}
+    serializer = FriendRequestSerializer(FriendRequest,data=temp_dict)
     if serializer.is_valid():
-        serializer.update(req,data)
+        for q in req:
+            serializer.update(q,temp_dict)
+        return Response(status=status.HTTP_200_OK)
     """ TODO user would get notification about requests are not rejected"""
 
 @api_view(['POST'])
-def unfriend(request, pk):
+def unfriend(request):
     if request.method != 'POST':
         # invalid method
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -374,20 +383,36 @@ def unfriend(request, pk):
     """ TODO: 1, remove from friend list | 2, remove from following list"""
     # delete from friend list
     data = JSONParser().parse(request)
+    requester = Author.objects.get(pk=data.get("requester"))
+    requestee = Author.objects.get(pk=data.get("requestee"))
+
     try:
-        req = Friends.objects.get(author1=data.author1, author2=data.author2)
+        req = Friends.objects.filter(Q(author1=requester , author2=requestee) | Q(author1=requestee , author2=requester))
+        for q in req:
+            q.delete()
     except FriendRequest.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
-    req.delete()
 
-    if data.author1 == pk:
-        following = author2
-    else:
-        following = data.author1
+    try:
+        req = Following.objects.get(follower=requester, following=requestee)
+        req.delete()
+    except FriendRequest.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
-    if not unfollow(pk, following):
-        print("Error: following instance is not found", file=sys.stderr)
+    # temp_dict = {"follower" :a1 , "following":a2}
+    # unfollow(temp_dict)
+
+    # if not unfollow(pk, following):
+    #     print("Error: following instance is not found", file=sys.stderr)
     return Response(status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def get_friends(request):
+    pass
+
+@api_view(['GET'])
+def get_friends_local(request):
+    pass
 
 
 """some ideas about friends of friends: """
@@ -405,7 +430,6 @@ def make_them_friends(author_one, author_two, existing_request):
     existing_request.delete()
 
     if serializer.is_valid():
-        serializer.save()
         return Response(serializer.data)
     else:
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
