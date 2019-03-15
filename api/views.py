@@ -1,5 +1,5 @@
-from api.models import Author, FriendRequest, Friends,Post,Comment,VisibleToPost
-from api.serializers import AuthorSerializer, FriendRequestSerializer, FriendsSerializer,PostSerializer,CommentSerializer,VisibleToPostSerializer,CategoriesSerializer
+from api.models import Author, FriendRequest, Friends,Post,Comment,VisibleToPost,Following
+from api.serializers import AuthorSerializer, FriendsSerializer, FriendRequestSerializer, FriendsSerializer,PostSerializer,CommentSerializer,VisibleToPostSerializer,CategoriesSerializer
 from rest_framework import status
 from rest_framework.decorators import api_view,permission_classes
 from rest_framework.views import APIView
@@ -33,10 +33,21 @@ class ListAuthors(APIView):
         users_search = JSONParser().parse(request)
         print("**********************************************************************")
         print(users_search['users_search'])
+        users_username=users_search['userName']
         users_search=users_search['users_search']
         if users_search is not "":
+            test  =Friends.objects.all()
+            print("here she is")
+            print(test[0].author1)
             #print(queryset)
             queryset=Author.objects.filter(Q(userName__startswith=users_search))
+            print("1")
+            searcher = Author.objects.filter(Q(userName=users_username))
+            print("1")
+            print(users_username)
+            pple_to_follow = Friends.objects.filter(Q(author1=searcher[0]))
+            print("here is the searcher")
+            print(searcher[0])
             #queryset = queryset.filter(userName=users_search['users_search']).values_list('userName',flat=True)
             print("**********************************************************************")
             print("**********************************************************************")
@@ -47,19 +58,39 @@ class ListAuthors(APIView):
                 print("here is the serializer")
                 serializer = AuthorSerializer(author)
                 print(serializer.data) """
+            print("here is the query set")
             print(queryset)
 
-            for q in queryset:
-                print(q)
-                author = Author.objects.get(userName=q)
-                serializer = AuthorSerializer(author)
-                print(serializer.data)
-                authors_to_pass.append(serializer.data)
+            try:
+                for q in queryset:
+                    print(q)
+                    author = Author.objects.get(userName=q)
+                
+                    serializer = AuthorSerializer(author)
+                    print(serializer.data)
+                    authors_to_pass.append(serializer.data)
+            except IndexError:
+                pass
+
+            print("pple to follow")
+            pple_he_is_following=[]
+            if(pple_to_follow):
+                for p in pple_to_follow:
+                    print(p.author1)
+                    print(p.author2)
+                    
+                    serializer= FriendsSerializer(p)
+                    pple_he_is_following.append(serializer.data)
+            #for p in pple_to_follow:
+                #serializer = FollowingSerializer(p)
+               # print("here is the followers object")
+                #print(serializer)
 
 
             print("here is the list")
             print(authors_to_pass)
-            return Response(authors_to_pass)
+            print(pple_he_is_following)
+            return Response([authors_to_pass,pple_he_is_following])
         else:
             serializer = AuthorSerializer(authors,many=True)
             return Response(serializer.data)
