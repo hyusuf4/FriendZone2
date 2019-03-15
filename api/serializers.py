@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Author, FriendRequest, Friends,Post,Comment,VisibleToPost,Categories
+from .models import Author, FriendRequest, Friends,Post,Comment,VisibleToPost,Categories, Following
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
@@ -93,21 +93,22 @@ class FriendRequestSerializer(serializers.ModelSerializer):
         return new_instance
 
 class FriendsSerializer(serializers.ModelSerializer):
-    date = serializers.DateTimeField(default=datetime.now())
     class Meta:
         model=Friends
         fields=('pk','author1',
         'author2',
         'date')
-    def save(self):
-        author=self.validated.get('author')
-        friend=self.validated.get('friend')
-        if author.host=='http://127.0.0.1:8000/' and friend.host=='http://127.0.0.1:8000/':
-            print ("im here")
-            author=Author.objects.filter(authorid=authorid)
-            friend=Author.objects.filter(authorid=friendid)
-            author1 = author
-            author2 = friend
+    def create(self, validated_data):
+        # print(111, validated_data, 222)
+        new_instance = Friends.objects.create(\
+            author1=validated_data.get('to_author'),\
+            author2=validated_data.get('from_author'),\
+            date=timezone.now()
+        )
+
+        new_instance.save()
+
+        return new_instance
 
 class VisibleToPostSerializer(serializers.ModelSerializer):
     class Meta:
@@ -139,6 +140,20 @@ class CategoriesSerializer(serializers.ModelSerializer):
     model=Categories
     fields=('post','category')
 
+class FollowingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Following
+        fields = ('follower', 'following', 'created')
+
+    def create(self, validated_data):
+        new_instance = Following.objects.create(\
+            follower=validated_data.get("requester_id"),\
+            following=validated_data.get("requestee_id"),\
+            created=timezone.now()\
+        )
+        new_instance.save()
+
+        return new_instance
 
 class PostSerializer(serializers.ModelSerializer):
     publicationDate = serializers.DateTimeField(default=datetime.now())

@@ -347,7 +347,23 @@ def friend_request(request):
 
     return Response(status=status.HTTP_201_CREATED)
 
+@api_view(['POST'])
+def friend_result(request):
+    """ modify friend request entry values (accept and reject)"""
+    if request.method != 'POST':
+        # invalid method
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
+    data = JSONParser().parse(request)
+    try:
+        req = FriendRequest.objects.get(from_author=data.from_author, to_author=data.to_author)
+    except FriendRequest.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    serializer = FriendRequestSerializer(FriendRequest,data=data)
+    if serializer.is_valid():
+        serializer.update(req,data)
+    """ TODO user would get notification about requests are not rejected"""
 
 @api_view(['POST'])
 def unfriend(request, pk):
