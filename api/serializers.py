@@ -40,7 +40,7 @@ class LoginSerializer(serializers.Serializer):
 
 class AuthorSerializer(serializers.ModelSerializer):
 
-    firstName=serializers.CharField(blank=True,null=True)
+    firstName=serializers.CharField()
     class Meta:
         model = Author
         fields=('pk','firstName','lastName','userName','hostName','githubUrl')
@@ -96,7 +96,7 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ('pk','source','origin','contentType','publicationDate', 'content', 'title', 'permission','author','unlisted')
-    
+
     def create(self, validated_data,author):
 
         new_instance = Post.objects.create(content=validated_data.get('content'),title=validated_data.get('title'), permission=validated_data.get('permission'),author=author,publicationDate=datetime.now())
@@ -136,7 +136,7 @@ class PostSerializer(serializers.ModelSerializer):
                 #     if foaf1 != author:
                 #         foaf.add(foaf2)
             print(foaf)
-            
+
         return new_instance
 
 
@@ -144,10 +144,10 @@ class VisibleToPostSerializer(serializers.ModelSerializer):
     class Meta:
         model=VisibleToPost
         fields=('post','author')
-     
+
     def get_visible(post):
         self.object.filter(post=post)
-    
+
 
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
