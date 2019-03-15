@@ -10,10 +10,10 @@ urlpatterns = [
     path('api/auth',include('knox.urls')),
     #for registering a user route
     path('api/auth/register',RegisterAPI.as_view()),
-    
+
     # for logining in a user route
     path('api/auth/login',LoginAPI.as_view()),
-    
+
     path('api/auth/user',UserAPI.as_view()),
 
     path('api/auth/logout',knox_views.LogoutView.as_view(),name='knox_logout'),
@@ -30,11 +30,11 @@ urlpatterns = [
     #Just retrieves comments to that specific post
     path('api/posts/<pk>/comments',views.post_comments),
     #Just sends a friend request
-    path('api/friendRequest',views.friend_request),
+    path('api/friendRequest/',views.friend_request),
     # result of a friend request
-    path('api/friendResult', views.friend_result),
+    path('api/friendResult/<pk>', views.friend_result),
     # Just un-befriend(unfollow) an author
-    path('api/unfriend', views.unfriend)
+    path('api/unfriend/<pk>', views.unfriend)
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

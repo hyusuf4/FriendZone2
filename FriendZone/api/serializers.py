@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Author, FriendRequest, Friends,Post,Comment
+from .models import Author, FriendRequest, Friends,Post,Comment, Following
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
@@ -70,9 +70,7 @@ class FriendRequestSerializer(serializers.ModelSerializer):
             regected=True,\
             # test=parse_datetime(validated_data.get('test')).strftime("%Y-%m-%d %H:%M:%S")
             test=parse_datetime("2012-04-23T18:25:43.511Z").strftime("%Y-%m-%d %H:%M:%S")
-
         )
-
         new_instance.save()
 
         return new_instance
@@ -83,6 +81,17 @@ class FriendsSerializer(serializers.ModelSerializer):
         fields=('pk','author1',
         'author2',
         'date')
+    def create(self, validated_data):
+        # print(111, validated_data, 222)
+        new_instance = Friends.objects.create(\
+            author1=validated_data.get('to_author'),\
+            author2=validated_data.get('from_author'),\
+            date=timezone.now()
+        )
+
+        new_instance.save()
+
+        return new_instance
 
 class PostSerializer(serializers.ModelSerializer):
     class Meta:
@@ -95,6 +104,21 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model= Comment
         fields=('pk','comment','author','postid','published','content-type')
+
+class FollowingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Following
+        fields = ('follower', 'following', 'created')
+
+    def create(self, validated_data):
+        new_instance = Following.objects.create(\
+            follower=validated_data.get("requester_id"),\
+            following=validated_data.get("requestee_id"),\
+            created=timezone.now()\
+        )
+        new_instance.save()
+
+        return new_instance
 
 
 # class ImageSerializer(serializers.ModelSerializer):
