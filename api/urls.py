@@ -35,15 +35,17 @@ urlpatterns = [
     #Just retrieves comments to that specific post
     path('api/posts/<pk>/comments',PostComments.as_view()),
     #Just sends a friend request
-    path('api/friendRequest',views.send_friend_request),
+    path('api/friendrequests/',views.send_friend_request),
     # result of a friend request
-    path('api/friendResult', views.respond_to_friend_request),
+    path('api/friendresult/', views.respond_to_friend_request),
     # Just un-befriend(unfollow) an author
-    path('api/unfriend', views.unfriend),
+    path('api/unfriend/', views.unfriend),
     # Get all my friends
-    path('api/friends', views.get_friends),
+    path('api/authors/<authorid>/friends/', views.get_friends),
     # Get all my friends
-    path('api/local_friends', views.get_friends_local)
+    path('api/local_friends/', views.get_friends_local),
+    # Ask if 2 authors are friends
+    path('api/author/<authorid>/friends/<authorid2>/', views.check_friendship)
 
 ]
 

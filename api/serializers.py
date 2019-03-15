@@ -97,6 +97,9 @@ class FriendRequestSerializer(serializers.ModelSerializer):
 
 
 class FriendsSerializer(serializers.ModelSerializer):
+    date = serializers.DateTimeField(default=datetime.now())
+    author1=AuthorSerializer(required=False)
+    author2=AuthorSerializer(required=False)
     class Meta:
         model=Friends
         fields=('pk','author1',

@@ -424,8 +424,38 @@ def unfriend(request):
     return Response(status=status.HTTP_200_OK)
 
 @api_view(['GET'])
-def get_friends(request):
-    pass
+def get_friends(request, authorid):
+    current_user_id = authorid;
+
+    try:
+        current_user = Author.objects.get(pk=authorid)
+    except Exception:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+    friends_queryset = Friends.objects.filter(Q(author1=current_user) | Q(author2=current_user))
+    friends_list = []
+
+    for friend in friends_queryset:
+        if current_user.pk == friend.author1.pk:
+            friends_list.append(friend.author2.author_id)
+        else:
+            friends_list.append(friend.author1.author_id)
+    return Response({"query":"Friends","authors":friends_list},status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def check_friendship(request, authorid, authorid2):
+    try:
+        user1 = Author.objects.get(pk=authorid)
+        user2 = Author.objects.get(pk=authorid2)
+    except Exception:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    friends_queryset = Friends.objects.filter(Q(author1=user1, author2=user2) | Q(author1=user2, author2=user1))
+    friends_list = []
+    friends_list.append(user1.author_id)
+    friends_list.append(user2.author_id)
+    friends = friends_queryset.exists()
+
+    return Response({"query":"Friends","authors":friends_list, "friends": friends},status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def get_friends_local(request):
