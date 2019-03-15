@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 
 class Author(models.Model):
     author_id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
-    firstName=models.CharField(max_length=30)
+    firstName=models.CharField(max_length=30,blank=True,null=True)
     lastName=models.CharField(max_length=30)
     userName=models.CharField(max_length=30)
     password=models.CharField(max_length=30)
@@ -18,15 +18,12 @@ class Author(models.Model):
     def __str__(self):
         return self.userName
 
-
-
 class FriendRequest(models.Model):
     from_author= models.ForeignKey(Author,on_delete=models.CASCADE, related_name="friend_request_sent",null=True)
     to_author=models.ForeignKey(Author,on_delete=models.CASCADE, related_name="friend_request_recieved",null=True)
     created=models.DateTimeField(blank=True, null=True)
     accepted=models.BooleanField(default=False)
     regected=models.BooleanField(default=False)
-    test=models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return "You recieved a friend request from %s to %s"%(self.from_author, self.to_author)
@@ -34,7 +31,12 @@ class FriendRequest(models.Model):
 class Friends(models.Model):
     author1=models.ForeignKey(Author,on_delete=models.CASCADE,related_name='friend1',null=True)
     author2=models.ForeignKey(Author,on_delete=models.CASCADE,related_name='friend2',null=True)
-    date=models.DateTimeField()
+    date=models.DateTimeField(blank=True, null=True)
+
+class Following(models.Model):
+    follower = models.ForeignKey(Author,on_delete=models.CASCADE, related_name="follower",null=True)
+    following = models.ForeignKey(Author,on_delete=models.CASCADE, related_name="following",null=True)
+    created=models.DateTimeField(blank=True, null=True)
 
 
 

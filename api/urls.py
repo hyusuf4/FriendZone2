@@ -35,11 +35,11 @@ urlpatterns = [
     #Just retrieves comments to that specific post
     path('api/posts/<pk>/comments',PostComments.as_view()),
     #Just sends a friend request
-    path('api/FriendRequest',FriendRequest.as_view()),
+    path('api/friendRequest/',views.friend_request),
     # result of a friend request
-    path('api/friendResult', views.friend_result),
+    path('api/friendResult/<pk>', views.friend_result),
     # Just un-befriend(unfollow) an author
-    path('api/unfriend', views.unfriend)
+    path('api/unfriend/<pk>', views.unfriend)
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)
