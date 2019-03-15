@@ -55,6 +55,10 @@ class ListAuthors(APIView):
                 serializer = AuthorSerializer(author)
                 print(serializer.data)
                 authors_to_pass.append(serializer.data)
+
+
+            print("here is the list")
+            print(authors_to_pass)
             return Response(authors_to_pass)
         else:
             serializer = AuthorSerializer(authors,many=True)
