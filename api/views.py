@@ -1,5 +1,5 @@
-from api.models import Author, FriendRequest, Friends,Post,Comment,VisibleToPost
-from api.serializers import AuthorSerializer, FriendRequestSerializer, FriendsSerializer,PostSerializer,CommentSerializer,VisibleToPostSerializer
+from api.models import Author, FriendRequest, Friends,Post,Comment
+from api.serializers import AuthorSerializer, FriendRequestSerializer, FriendsSerializer,PostSerializer,CommentSerializer
 from rest_framework import status
 from rest_framework.decorators import api_view,permission_classes
 from rest_framework.response import Response
@@ -9,59 +9,22 @@ from django.core import serializers
 from django.utils.dateparse import parse_datetime
 from rest_framework.permissions import IsAuthenticated
 import sys
-from django.http import JsonResponse
-from django.db.models import Q
 
 
 @api_view(['GET', 'POST'])
-#@permission_classes((IsAuthenticated,))
+@permission_classes((IsAuthenticated,))
 def authors_list(request):
-    authors_to_pass=[]
     if request.method == 'GET':
         authors = Author.objects.all()
         serializer = AuthorSerializer(authors,many=True)
         return Response(serializer.data)
 
     elif request.method == 'POST':
-        #queryset = Author.objects.all().values_list('userName',flat=True)
-
-
-
-        #print(queryset[0])
-        users_search = JSONParser().parse(request)
-        print("**********************************************************************")
-        print(users_search['users_search'])
-        users_search=users_search['users_search']
-        if users_search is not "":
-            #print(queryset)
-            queryset=Author.objects.filter(Q(userName__startswith=users_search))
-            #queryset = queryset.filter(userName=users_search['users_search']).values_list('userName',flat=True)
-            print("**********************************************************************")
-            print("**********************************************************************")
-            print("**********************************************************************")
-            print("**********************************************************************")
-            """ for q in queryset:
-                author = Author.objects.get(userName=q)
-                print("here is the serializer")
-                serializer = AuthorSerializer(author)
-                print(serializer.data) """
-            print(queryset)
-
-            for q in queryset:
-                print(type(q))
-                #author = Author.objects.get(userName=q)
-                #print(type(author))
-                serializer = AuthorSerializer(q)
-                print(serializer.data)
-                authors_to_pass.append(serializer.data)
-
-
-
-            return Response(authors_to_pass)
-        else:
-            serializer = AuthorSerializer(authors,many=True)
-            return Response(serializer.data)
-
+        serializer = AuthorSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET', 'PUT'])
 @permission_classes((IsAuthenticated,))
@@ -80,33 +43,7 @@ def author_details(request, pk):
         serializer = AuthorSerializer(Author, data=data)
         if serializer.is_valid():
             serializer.update(author,data)
-            return Response({"query":"update Post","success":True},status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-@api_view(['GET','POST'])
-def post_visibleToAuth(request):
-    try:
-        author=Author.objects.get(owner=request.user)
-    except Author.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
-
-
-    if request.method == "GET":
-        posts=[]
-        visiblePosts=VisibleToPost.objects.filter(author=author)
-        for post in visiblePosts:
-            v_posts=Post.objects.filter(postid=post)
-            posts.append(posts)
-        return Response({"query":"authorized posts","posts":posts},status=status.HTTP_200_OK)
-
-    if request.method == "POST":
-        data=JSONParser().parse(request)
-        serializer=PostSerializer(Post,data=data)
-        if serializer.is_valid():
-            serializer.create(data,author)
-            return Response({"query":"Add Post", "success":True}, status=status.HTTP_200_OK)
+            return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
@@ -121,27 +58,14 @@ def public_posts(request):
 @permission_classes((IsAuthenticated,))
 def author_post(request,pk):
     try:
-
         author = Author.objects.get(pk=pk)
     except Author.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
-    return JsonResponse(request.user, safe=False)
-    if request.user == author.owner:
-        if request.method == 'GET':
-            post= Post.objects.filter(author=pk)
-            serializer = PostSerializer(post,many=True)
-            return Response(serializer.data)
-        if request.method == 'POST':
-            serializer=PostSerializer(data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    else:
-        if request.method == 'GET':
-            post= Post.objects.filter(Q(author))
 
-
+    if request.method == 'GET':
+        post= Post.objects.filter(author=pk)
+        serializer = PostSerializer(post,many=True)
+        return Response(serializer.data)
 
 
 @api_view(['GET', 'PUT','DELETE'])

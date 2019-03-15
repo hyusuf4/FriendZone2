@@ -24,7 +24,7 @@ urlpatterns = [
 
     path('api/author/posts',views.post_visibleToAuth),
 
-    
+
     #All posts marked as public on the server
     path('api/posts/',views.public_posts),
     #All posts made by this specific author, visible to authenticated user
@@ -34,11 +34,11 @@ urlpatterns = [
     #Just retrieves comments to that specific post
     path('api/posts/<pk>/comments',views.post_comments),
     #Just sends a friend request
-    path('api/friendRequest/',views.friend_request),
+    path('api/friendRequest',views.friend_request),
     # result of a friend request
-    path('api/friendResult/<pk>', views.friend_result),
+    path('api/friendResult', views.friend_result),
     # Just un-befriend(unfollow) an author
-    path('api/unfriend/<pk>', views.unfriend)
+    path('api/unfriend', views.unfriend)
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)
