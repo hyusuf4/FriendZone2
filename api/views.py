@@ -55,7 +55,8 @@ def authors_list(request):
                 authors_to_pass.append(serializer.data)
 
 
-            
+            print("here is the list")
+            print(authors_to_pass)
             return Response(authors_to_pass)
         else:
             serializer = AuthorSerializer(authors,many=True)
