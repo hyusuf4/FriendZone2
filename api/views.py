@@ -346,7 +346,7 @@ def send_friend_request(request):
 
     requester = Author.objects.get(pk=requester_id)
     requestee = Author.objects.get(pk=requestee_id)
-    temp_dict = {"requester_id" :requester , "requestee_id":requestee}
+    temp_dict = {"requester" :requester , "requestee":requestee}
     enroll_following(temp_dict)
 
     """ TODO: user story => As an author, I want to know if I have friend requests."""
@@ -365,6 +365,18 @@ def respond_to_friend_request(request):
         req = FriendRequest.objects.filter(Q(from_author=data.get("from_author")) & Q(to_author=data.get("to_author")))
     except FriendRequest.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+    if data.get("accepted"):
+        requester_id = data.get("from_author")
+        requestee_id = data.get("to_author")
+
+        existing_request = FriendRequest.objects.get(to_author=requestee_id, from_author=requester_id)
+        """make them friends"""
+        requester = Author.objects.get(pk=requester_id)
+        requestee = Author.objects.get(pk=requestee_id)
+        temp_dict = {"requester" :requestee , "requestee":requester}
+        enroll_following(temp_dict)
+        return Response(status=status.HTTP_200_OK)
 
     temp_dict = {"from_author" :data.get("from_author") , "to_author":data.get("to_author"), "accepted":data.get("accepted") , "regected":data.get("regected")}
     serializer = FriendRequestSerializer(FriendRequest,data=temp_dict)
@@ -441,7 +453,7 @@ def make_them_friends(author_one, author_two, existing_request):
 
 def enroll_following(validated_data):
     """TODO check duplicate here"""
-    instance = Following.objects.filter(follower=validated_data.get("requester"), following=validated_data.get(requestee))
+    instance = Following.objects.filter(follower=validated_data.get("requester"), following=validated_data.get("requestee"))
     if instance.exists():
         return Response(HTTP_200_OK)
     serializer = FollowingSerializer(data=validated_data)
