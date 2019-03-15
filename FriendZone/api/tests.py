@@ -4,6 +4,7 @@ from .models import Author, FriendRequest, Friends,Post,Comment, Following
 from django.test import Client
 from django.urls import reverse
 from django.db.models import Q
+import json
 
 """"""
 from api.models import Author, FriendRequest, Friends,Post,Comment
@@ -37,7 +38,16 @@ def create_friend_request(author_one, author_two):
 
 class FriendRequestViewTests(TestCase):
     def test_create_first_frequest(self):
-        pass
+        test_client = Client()
+        a1 = create_author(f_name="a1", l_name="a1", u_name="101", pwd=101)
+        a1.save()
+        a2 = create_author(f_name="a2", l_name="a2", u_name="102", pwd=101)
+        a2.save()
+
+        dir = "/api/friendRequest/"
+        # response = test_client.post(dir, json.dumps({'requester_id': a1.pk, 'requestee_id': a2.pk}) )
+        # print(response.content)
+        # self.assertEqual(response.status_code, 200)
     def test_create_duplicate_frequest(self):
         pass
     def test_make_friends(self):
@@ -129,6 +139,7 @@ def make_them_friends(author_one, author_two, existing_request):
     else:
         print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 def enroll_following(validated_data):
     """TODO check duplicate here"""
     serializer = FollowingSerializer(data=validated_data)
