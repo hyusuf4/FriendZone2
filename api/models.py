@@ -38,9 +38,6 @@ class Following(models.Model):
     following = models.ForeignKey(Author,on_delete=models.CASCADE, related_name="following",null=True)
     created=models.DateTimeField(blank=True, null=True)
 
-
-
-
 class Post(models.Model):
     PERMISSION_OPTIONS = (
         ("M", "me"),

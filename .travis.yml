@@ -1,0 +1,11 @@
+language: python
+python:
+  - "3.5"
+# command to install dependecies 
+install:
+  - pip install -U pip wheel
+  - pip install -U 'Django<2.0'
+  - pip install -r requirements.txt
+# command to run tests 
+script:
+  - python3 manage.py test
