@@ -17,6 +17,9 @@ from django.core import serializers
 from django.utils.dateparse import parse_datetime
 from rest_framework.permissions import IsAuthenticated
 import sys
+import unittest
+from django.utils import timezone
+import pytz
 """"""
 
 # Create your tests here.
@@ -50,6 +53,35 @@ class UnfriendViewTests(TestCase):
     pass
 
 class UtilityTests(TestCase):
+    def test_getAuthor(self):
+        # Asserts Author is being created 
+        try:
+            a1 = Author.objects.create(firstName='test_user', lastName='test_user_lastname', userName='test_userName', password='test')
+
+            self.assertTrue(Author.objects.get(firstName='test_user'))
+            self.assertTrue(Author.objects.get(userName='test_userName'))
+            
+
+        except Exception as e:
+            print("Error!!!")
+
+    def test_createPost(self): 
+        try:
+            a1 = Author.objects.create(firstName='test_user', lastName='test_user_lastname', userName='test_userName', password='test')
+            self.assertTrue(Author.objects.get(firstName='test_user'))
+            self.assertTrue(Author.objects.get(userName='test_userName'))
+            
+        except Exception as e:
+            print("Error!!!")
+
+        p1 = Post.objects.create(publicationDate= timezone.now() ,content='this is a test', title='test', permission = "P", author = a1)
+        
+        self.assertTrue(Post.objects.get(title='test'))
+    
+        
+        
+
+
     def test_make_them_friends(self):
         a1 = create_author(f_name="a1", l_name="a1", u_name="101", pwd=101)
         a1.save()
@@ -61,7 +93,7 @@ class UtilityTests(TestCase):
 
         try:
             check_user = Author.objects.get(pk=a2.pk)
-            print("Saved")
+            #print("Saved")
         except Exception as e:
             print("Error!!")
 
@@ -108,7 +140,7 @@ class UtilityTests(TestCase):
         unfollow(temp_dict)
         try:
             result = Following.objects.filter(follower=a1, following=a2).exists()
-            print(result)
+            #print(result)
         except Friends.DoesNotExist:
             result = True
         self.assertFalse(result)
