@@ -22,6 +22,8 @@ from django.utils import timezone
 import pytz
 """"""
 
+from .views import enroll_following, make_them_friends, unfollow
+
 # Create your tests here.
 def create_author(f_name="A", l_name="B", u_name="101", pwd=101):
     return Author.objects.create(\
@@ -54,32 +56,32 @@ class UnfriendViewTests(TestCase):
 
 class UtilityTests(TestCase):
     def test_getAuthor(self):
-        # Asserts Author is being created 
+        # Asserts Author is being created
         try:
             a1 = Author.objects.create(firstName='test_user', lastName='test_user_lastname', userName='test_userName', password='test')
 
             self.assertTrue(Author.objects.get(firstName='test_user'))
             self.assertTrue(Author.objects.get(userName='test_userName'))
-            
+
 
         except Exception as e:
             print("Error!!!")
 
-    def test_createPost(self): 
+    def test_createPost(self):
         try:
             a1 = Author.objects.create(firstName='test_user', lastName='test_user_lastname', userName='test_userName', password='test')
             self.assertTrue(Author.objects.get(firstName='test_user'))
             self.assertTrue(Author.objects.get(userName='test_userName'))
-            
+
         except Exception as e:
             print("Error!!!")
 
         p1 = Post.objects.create(publicationDate= timezone.now() ,content='this is a test', title='test', permission = "P", author = a1)
-        
+
         self.assertTrue(Post.objects.get(title='test'))
-    
-        
-        
+
+
+
 
 
     def test_make_them_friends(self):
@@ -144,36 +146,3 @@ class UtilityTests(TestCase):
         except Friends.DoesNotExist:
             result = True
         self.assertFalse(result)
-
-def make_them_friends(author_one, author_two, existing_request):
-    # change status of a friend request
-    existing_request.accepted = True
-    existing_request.regected = False
-    # create instance of Friends
-    temp_dict = {"from_author" :existing_request.from_author , "to_author":existing_request.to_author}
-    # print(existing_request.from_author.pk)
-    serializer = FriendsSerializer(data=temp_dict)
-    serializer.create(temp_dict)
-    existing_request.delete()
-
-    if serializer.is_valid():
-        return Response(serializer.data)
-    else:
-        print(serializer.errors)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-def enroll_following(validated_data):
-    """TODO check duplicate here"""
-    serializer = FollowingSerializer(data=validated_data)
-    serializer.create(validated_data)
-    if serializer.is_valid():
-        return Response(serializer.data)
-    else:
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-def unfollow(validated_data):
-    try:
-        req = Following.objects.get(follower=validated_data.get("follower"), following=validated_data.get("following"))
-    except Following.DoesNotExist:
-        return False
-    req.delete()
-    return True
