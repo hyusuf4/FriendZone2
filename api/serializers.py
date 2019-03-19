@@ -7,7 +7,8 @@ from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 from datetime import datetime
 from django.db.models import Q
-
+from django.contrib.auth.models import Permission
+ 
 
 
 
@@ -33,9 +34,13 @@ class LoginSerializer(serializers.Serializer):
 
     def validate(self,data):
         user=authenticate(**data)
+        print(user)
         if user and user.is_active:
             return user
-        raise serializers.ValidationError("Incorrect Crendentials")
+        elif user and not user.is_active:
+            raise serializers.ValidationError("Please Wait till we authorize you")
+        else:
+            raise serializers.ValidationError("Incorrect Crendentials")
 
 
 class AuthorSerializer(serializers.ModelSerializer):
