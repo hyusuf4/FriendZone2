@@ -15,7 +15,7 @@ class RegisterAPI(generics.GenericAPIView):
         serializer=self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user=serializer.save()
-        self.set_new_user_inactive(user)
+##        self.set_new_user_inactive(user)
         return Response({
             "user":UserSerializer(user, context=self.get_serializer_context()).data,
             "token":AuthToken.objects.create(user),
@@ -34,10 +34,6 @@ class LoginAPI(generics.GenericAPIView):
     def post(self,request,*args, **kwargs):
         serializer=self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        if serializer.errors==("User is not activated yet"):
-            return Response({'Please wait till your activated by account is activated'},status=status.HTTP_400_BAD_REQUEST)
-        if serializer.errors==("Incorrect Crendentials"):
-            return Response({'Please try again Incorrect Crendentials'},status=status.HTTP_400_BAD_REQUEST)
         user=serializer.validated_data
         return Response({
             "user":UserSerializer(user, context=self.get_serializer_context()).data,
