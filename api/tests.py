@@ -4,7 +4,7 @@ from .models import Author, FriendRequest, Friends,Post,Comment, Following
 from django.test import Client
 from django.urls import reverse
 from django.db.models import Q
-
+import json
 """"""
 from api.models import Author, FriendRequest, Friends,Post,Comment
 from api.serializers import AuthorSerializer, FriendRequestSerializer, FriendsSerializer,PostSerializer,CommentSerializer, FollowingSerializer
@@ -41,17 +41,54 @@ def create_friend_request(author_one, author_two):
     )
 
 # reverse('renew-book-librarian', kwargs={'pk':self.test_bookinstance1.pk,}), {'renewal_date':valid_date_in_future})
-class LoginViewTest(TestCase):
-    def test_login(self):
+# self.client.defaults['HTTP_AUTHORIZATION'] = 'Basic ' + credentials
+class SignupViewTest(TestCase):
+    def test_signup(self):
         # response = self.client.login(username="admin", password="admin")
-        data = {'username': 'u1','password': 'u1', 'email':'a@b.ca'}
+        data = {'username': 'u3','password': 'u3', 'email':'a@b.ca'}
         response = self.client.post(reverse('api:signup'), data=data, format='json')
-        print(response)
         self.assertEqual(response.status_code, 200)
+
+class LoginViewTest(TestCase):
+    def test_login_inactive_user(self):
+        # login first
+        data = {'username': 'u3','password': 'u3', 'email':'a@b.ca'}
+        response = self.client.post(reverse('api:signup'), data=data, format='json')
+
+        # body = JSONParser().parse(response.content.decode('utf-8'))
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        credentials = body.get('token')
+        data = {'username': 'u3','password': 'u3'}
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'Token ' + credentials
+        response = self.client.post(reverse('api:login'), data=data, format='json')
+        # print(11111111111,response, 222222222222)
+        self.assertEqual(response.status_code, 401)
+
+    def test_login_active_user(self):
+
+        data = {'username': 'u3','password': 'u3', 'email':'a@b.ca'}
+        response = self.client.post(reverse('api:signup'), data=data, format='json')
+
+        # body = JSONParser().parse(response.content.decode('utf-8'))
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        credentials = body.get('token')
+        print(3333333, credentials, 444444444)
+        data = {'username': 'u3','password': 'u3'}
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'Token ' + credentials
+        response = self.client.post(reverse('api:login'), data=data, format='json')
+        # print(11111111111,response, 222222222222)
+        self.assertEqual(response.status_code, 401)
 
 class FriendRequestViewTests(TestCase):
     def test_create_first_frequest(self):
-        pass
+        a1 = create_author(f_name="a1", l_name="a1", u_name="101", pwd=101)
+        a1.save()
+        a2 = create_author(f_name="a2", l_name="a2", u_name="102", pwd=101)
+        a2.save()
+
+
     def test_create_duplicate_frequest(self):
         pass
     def test_make_friends(self):
@@ -92,10 +129,6 @@ class UtilityTests(TestCase):
         p1 = Post.objects.create(publicationDate= timezone.now() ,content='this is a test', title='test', permission = "P", author = a1)
 
         self.assertTrue(Post.objects.get(title='test'))
-
-
-
-
 
     def test_make_them_friends(self):
         a1 = create_author(f_name="a1", l_name="a1", u_name="101", pwd=101)
