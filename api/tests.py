@@ -40,6 +40,15 @@ def create_friend_request(author_one, author_two):
         created=timezone.now()
     )
 
+# reverse('renew-book-librarian', kwargs={'pk':self.test_bookinstance1.pk,}), {'renewal_date':valid_date_in_future})
+class LoginViewTest(TestCase):
+    def test_login(self):
+        # response = self.client.login(username="admin", password="admin")
+        data = {'username': 'u1','password': 'u1', 'email':'a@b.ca'}
+        response = self.client.post(reverse('api:signup'), data=data, format='json')
+        print(response)
+        self.assertEqual(response.status_code, 200)
+
 class FriendRequestViewTests(TestCase):
     def test_create_first_frequest(self):
         pass
@@ -47,6 +56,10 @@ class FriendRequestViewTests(TestCase):
         pass
     def test_make_friends(self):
         pass
+
+def CheckFriendshipViewTests(TestCase):
+    def test_existing_friendship(self):
+        response = self.client.get(reverse('api:author/<authorid>/friends/<authorid2>/', kwargs={}))
 
 class FriendResultViewTests(TestCase):
     pass
