@@ -185,8 +185,11 @@ class PostSerializer(serializers.ModelSerializer):
         if validated_data.get('categories'):
             for category in validated_data.get('categories'):
                 categories=Categories.create(post=new_instance,category=category)
+        if validated_data.get('permission')=='M':
+            authors=Author.objects.get(author_id=author.author_id)
+            visible=VisibleToPost.objects.create(post=new_instance,author=author)
         if validated_data.get('permission')== 'P':
-            authors=Author.objects.filter(~Q(pk=author.pk))
+            authors=Author.objects.all()
             for author in authors:
                 visible=VisibleToPost.objects.create(post=new_instance,author=author)
         if validated_data.get('permission') == 'F':
@@ -204,6 +207,7 @@ class PostSerializer(serializers.ModelSerializer):
                 elif friend.author2 == author and friend.author1.hostName == 'https://project-cmput404.herokuapp.com/':
                     new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author1)
         return new_instance
+
 
     def update(self, instance, validated_data):
         instance.title = validated_data.get('title', instance.title)
