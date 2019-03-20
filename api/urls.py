@@ -22,7 +22,7 @@ urlpatterns = [
     #Retrieves this specific authors details
     path('authors/<pk>/', AuthorDetails.as_view(),name='authors'),
 
-    path('author/posts/',PostOfAuth.as_view(), "auth_posts"),
+    path('author/posts/',PostOfAuth.as_view(), name="auth_posts"),
 
 
     #All posts marked as public on the server
