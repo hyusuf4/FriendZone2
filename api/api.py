@@ -15,19 +15,18 @@ class RegisterAPI(generics.GenericAPIView):
         serializer=self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user=serializer.save()
-##        self.set_new_user_inactive(user)
         return Response({
             "user":UserSerializer(user, context=self.get_serializer_context()).data,
             "token":AuthToken.objects.create(user),
             "isActive":user.is_active
         })
-#     @receiver(pre_save, sender=User)
-#     def set_new_user_inactive(sender, instance, **kwargs):
-#         if instance._state.adding is True:
-#             print("Creating Inactive User")
-#             instance.is_active = False
-#         else:
-#             print("Updating User Record")
+    @receiver(pre_save, sender=User)
+    def set_new_user_inactive(sender, instance, **kwargs):
+        if instance._state.adding is True:
+            print("Creating Inactive User")
+            instance.is_active = False
+        else:
+            print("Updating User Record")
 class LoginAPI(generics.GenericAPIView):
     serializer_class=LoginSerializer
 
