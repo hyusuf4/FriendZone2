@@ -17,6 +17,7 @@ from django.core import serializers
 from .pagination import DefaultPageNumberPagination
 from rest_framework.settings import api_settings
 import json
+from django.utils import timezone
 
 class ListAuthors(APIView):
     """
@@ -65,7 +66,7 @@ class ListAuthors(APIView):
                 for q in queryset:
                     print(q)
                     author = Author.objects.get(userName=q)
-                
+
                     serializer = AuthorSerializer(author)
                     print(serializer.data)
                     authors_to_pass.append(serializer.data)
@@ -78,7 +79,7 @@ class ListAuthors(APIView):
                 for p in pple_to_follow:
                     print(p.author1)
                     print(p.author2)
-                    
+
                     serializer= FriendsSerializer(p)
                     pple_he_is_following.append(serializer.data)
             #for p in pple_to_follow:
@@ -100,7 +101,7 @@ class ListAuthors(APIView):
         serializer = AuthorSerializer(authors,many=True,context={'request':request})
         return Response(serializer.data)
 
-    
+
 
 class AuthorDetails(APIView):
     """
@@ -206,12 +207,12 @@ class ProfileOfAuth(APIView):
 
     #permission_classes = (IsAuthenticated,)
     pagination_class= DefaultPageNumberPagination
-    def get(self, request,format=None):        
+    def get(self, request,format=None):
         author = Author.objects.get(owner=request.user)
         serializer = AuthorSerializer(author,context={'request':request})
         return Response(serializer.data)
-    
-    
+
+
 
 
 class PostOfAuthors(APIView):
@@ -240,7 +241,7 @@ class PostOfAuthors(APIView):
             posts.append(serializer.data)
         serializer = PostSerializer(posts,many=True)
         return Response({"query":"posts","posts":posts},status=status.HTTP_200_OK)
-    
+
 
 
 class PostDetails(APIView):
@@ -364,7 +365,7 @@ def send_friend_request(request):
         """make them friends"""
         requester = Author.objects.get(pk=requester_id)
         requestee = Author.objects.get(pk=requestee_id)
-        temp_dict = {"requester_id" :requester , "requestee_id":requestee}
+        temp_dict = {"requester" :requester , "requestee":requestee}
         enroll_following(temp_dict)
         return make_them_friends(requester_id, requestee_id, existing_request)
     except FriendRequest.DoesNotExist:
@@ -533,12 +534,20 @@ def enroll_following(validated_data):
     instance = Following.objects.filter(follower=validated_data.get("requester"), following=validated_data.get("requestee"))
     if instance.exists():
         return Response(HTTP_200_OK)
-    serializer = FollowingSerializer(data=validated_data)
-    serializer.create(validated_data)
-    if serializer.is_valid():
-        return Response(serializer.data)
-    else:
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # serializer = FollowingSerializer(data=validated_data)
+    # serializer.create(validated_data)
+    new_instance = Following.objects.create(\
+        follower=validated_data.get("requester"),\
+        following=validated_data.get("requestee"),\
+        created=timezone.now()\
+    )
+    new_instance.save()
+
+    return Response(status=status.HTTP_200_OK)
+    # if serializer.is_valid():
+    #     return Response(serializer.data)
+    # else:
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 def unfollow(validated_data):
     try:
