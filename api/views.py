@@ -38,7 +38,8 @@ class ListAuthors(APIView):
         if users_search is not "":
             test  =Friends.objects.all()
             print("here she is")
-            print(test[0].author1)
+            if(test):
+                print(test[0].author1)
             #print(queryset)
             queryset=Author.objects.filter(Q(userName__startswith=users_search))
             print("1")
@@ -72,13 +73,25 @@ class ListAuthors(APIView):
             except IndexError:
                 pass
 
+            index_to_pop=[]
             print("pple to follow")
+            print(authors_to_pass)
             pple_he_is_following=[]
             if(pple_to_follow):
                 for p in pple_to_follow:
+                    print("two people")
                     print(p.author1)
                     print(p.author2)
                     
+                    for i in range(len(authors_to_pass)):
+                        print("...")
+                        print(type(authors_to_pass[i]['userName']))
+                        if(str(p.author2) == authors_to_pass[i]['userName']):
+                            print("CAME IN HERERRERERE")
+                            index_to_pop.append(i)
+                            
+
+
                     serializer= FriendsSerializer(p)
                     pple_he_is_following.append(serializer.data)
             #for p in pple_to_follow:
@@ -86,10 +99,11 @@ class ListAuthors(APIView):
                # print("here is the followers object")
                 #print(serializer)
 
-
+            for i in reversed(index_to_pop):
+                authors_to_pass.pop(i)
             print("here is the list")
             print(authors_to_pass)
-            print(pple_he_is_following)
+            #print(pple_he_is_following)
             return Response([authors_to_pass,pple_he_is_following])
         else:
             serializer = AuthorSerializer(authors,many=True)
@@ -97,8 +111,11 @@ class ListAuthors(APIView):
 
     def get(self,request):
         authors=Author.objects.all().order_by('-pk')
-        serializer = AuthorSerializer(authors,many=True,context={'request':request})
+        serializer = AuthorSerializer(authors,many=True)
         return Response(serializer.data)
+
+    def get_serializer_context(self):
+        return {"request": self.request}
 
     
 
