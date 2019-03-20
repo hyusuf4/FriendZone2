@@ -4,7 +4,7 @@ from .models import Author, FriendRequest, Friends,Post,Comment, Following
 from django.test import Client
 from django.urls import reverse
 from django.db.models import Q
-
+import json
 """"""
 from api.models import Author, FriendRequest, Friends,Post,Comment
 from api.serializers import AuthorSerializer, FriendRequestSerializer, FriendsSerializer,PostSerializer,CommentSerializer, FollowingSerializer
@@ -22,6 +22,8 @@ from django.utils import timezone
 import pytz
 """"""
 
+from .views import enroll_following, make_them_friends, unfollow
+
 # Create your tests here.
 def create_author(f_name="A", l_name="B", u_name="101", pwd=101):
     return Author.objects.create(\
@@ -38,13 +40,157 @@ def create_friend_request(author_one, author_two):
         created=timezone.now()
     )
 
+class GetAllAuthorListViewTest(TestCase):
+    def test_get_authors(self):
+
+        data = {'username': 'u3','password': 'u3', 'email':'a@b.ca'}
+        response = self.client.post(reverse('api:signup'), data=data, format='json')
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        credentials = body.get('token')
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'Token ' + credentials
+        response = self.client.post('api:authors_list')
+        print(00000000, response.content, 11111111)
+        self.assertEqual(response.status_code, 404)
+
+class SignupViewTest(TestCase):
+    def test_signup(self):
+        # response = self.client.login(username="admin", password="admin")
+        data = {'username': 'u3','password': 'u3', 'email':'a@b.ca'}
+        response = self.client.post(reverse('api:signup'), data=data, format='json')
+        self.assertEqual(response.status_code, 200)
+
+class LoginViewTest(TestCase):
+    def test_login_inactive_user(self):
+        # login first
+        data = {'username': 'u3','password': 'u3', 'email':'a@b.ca'}
+        response = self.client.post(reverse('api:signup'), data=data, format='json')
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        credentials = body.get('token')
+        data = {'username': 'u3','password': 'u3'}
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'Token ' + credentials
+        response = self.client.post(reverse('api:login'), data=data, format='json')
+        # print(11111111111,response, 222222222222)
+        self.assertEqual(response.status_code, 401)
+
+    def test_login_active_user(self):
+
+        data = {'username': 'u3','password': 'u3', 'email':'a@b.ca'}
+        response = self.client.post(reverse('api:signup'), data=data, format='json')
+
+        # body = JSONParser().parse(response.content.decode('utf-8'))
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        credentials = body.get('token')
+        data = {'username': 'u3','password': 'u3'}
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'Token ' + credentials
+        response = self.client.post(reverse('api:login'), data=data, format='json')
+        # print(11111111111,response, 222222222222)
+        self.assertEqual(response.status_code, 401)
+
 class FriendRequestViewTests(TestCase):
     def test_create_first_frequest(self):
-        pass
+        a1 = create_author(f_name="a1", l_name="a1", u_name="101", pwd=101)
+        a1.save()
+        a2 = create_author(f_name="a2", l_name="a2", u_name="102", pwd=101)
+        a2.save()
+        fr = create_friend_request(a1, a2)
+        fr.save()
+        make_them_friends(a1, a2, fr)
+
+        try:
+            check_user = Author.objects.get(pk=a2.pk)
+            #print("Saved")
+        except Exception as e:
+            print("Error!!")
+
+        # no friend request
+        result0 = False
+        try:
+            result0 = FriendRequest.objects.get(pk=fr.pk).exists()
+        except FriendRequest.DoesNotExist:
+            result0 = False
+        self.assertFalse(result0)
+        # have entry in friends
+        result = False
+        try:
+            result = Friends.objects.filter( Q(author1=a1, author2=a2) | Q(author2=a1, author1=a2)).exists()
+
+            self.assertTrue(result)
+            # print(111,Friends.objects.filter( Q(author1=a1), Q(author2=a2) | Q(author2=a1), Q(author1=a2)),222)
+        except Friends.DoesNotExist:
+            result = False
+        self.assertTrue(result)
+
     def test_create_duplicate_frequest(self):
-        pass
+        a1 = create_author(f_name="a1", l_name="a1", u_name="101", pwd=101)
+        a1.save()
+        a2 = create_author(f_name="a2", l_name="a2", u_name="102", pwd=101)
+        a2.save()
+        fr = create_friend_request(a1, a2)
+        fr.save()
+        make_them_friends(a1, a2, fr)
+
+        try:
+            check_user = Author.objects.get(pk=a2.pk)
+            #print("Saved")
+        except Exception as e:
+            print("Error!!")
+
+        # no friend request
+        result0 = False
+        try:
+            result0 = FriendRequest.objects.get(pk=fr.pk).exists()
+        except FriendRequest.DoesNotExist:
+            result0 = False
+        self.assertFalse(result0)
+        # have entry in friends
+        result = False
+        try:
+            result = Friends.objects.filter( Q(author1=a1, author2=a2) | Q(author2=a1, author1=a2)).exists()
+
+            self.assertTrue(result)
+            # print(111,Friends.objects.filter( Q(author1=a1), Q(author2=a2) | Q(author2=a1), Q(author1=a2)),222)
+        except Friends.DoesNotExist:
+            result = False
+        self.assertTrue(result)
     def test_make_friends(self):
-        pass
+        a1 = create_author(f_name="a1", l_name="a1", u_name="101", pwd=101)
+        a1.save()
+        a2 = create_author(f_name="a2", l_name="a2", u_name="102", pwd=101)
+        a2.save()
+        fr = create_friend_request(a1, a2)
+        fr.save()
+        make_them_friends(a1, a2, fr)
+
+        try:
+            check_user = Author.objects.get(pk=a2.pk)
+            #print("Saved")
+        except Exception as e:
+            print("Error!!")
+
+        # no friend request
+        result0 = False
+        try:
+            result0 = FriendRequest.objects.get(pk=fr.pk).exists()
+        except FriendRequest.DoesNotExist:
+            result0 = False
+        self.assertFalse(result0)
+        # have entry in friends
+        result = False
+        try:
+            result = Friends.objects.filter( Q(author1=a1, author2=a2) | Q(author2=a1, author1=a2)).exists()
+
+            self.assertTrue(result)
+            # print(111,Friends.objects.filter( Q(author1=a1), Q(author2=a2) | Q(author2=a1), Q(author1=a2)),222)
+        except Friends.DoesNotExist:
+            result = False
+        self.assertTrue(result)
+
+class CheckFriendshipViewTests(TestCase):
+    def test_existing_friendship(self):
+        response = self.client.get(reverse('api:author/<authorid>/friends/<authorid2>/', kwargs={}))
 
 class FriendResultViewTests(TestCase):
     pass
@@ -54,33 +200,29 @@ class UnfriendViewTests(TestCase):
 
 class UtilityTests(TestCase):
     def test_getAuthor(self):
-        # Asserts Author is being created 
+        # Asserts Author is being created
         try:
             a1 = Author.objects.create(firstName='test_user', lastName='test_user_lastname', userName='test_userName', password='test')
 
             self.assertTrue(Author.objects.get(firstName='test_user'))
             self.assertTrue(Author.objects.get(userName='test_userName'))
-            
+
 
         except Exception as e:
             print("Error!!!")
 
-    def test_createPost(self): 
+    def test_createPost(self):
         try:
             a1 = Author.objects.create(firstName='test_user', lastName='test_user_lastname', userName='test_userName', password='test')
             self.assertTrue(Author.objects.get(firstName='test_user'))
             self.assertTrue(Author.objects.get(userName='test_userName'))
-            
+
         except Exception as e:
             print("Error!!!")
 
         p1 = Post.objects.create(publicationDate= timezone.now() ,content='this is a test', title='test', permission = "P", author = a1)
-        
-        self.assertTrue(Post.objects.get(title='test'))
-    
-        
-        
 
+        self.assertTrue(Post.objects.get(title='test'))
 
     def test_make_them_friends(self):
         a1 = create_author(f_name="a1", l_name="a1", u_name="101", pwd=101)
@@ -144,36 +286,3 @@ class UtilityTests(TestCase):
         except Friends.DoesNotExist:
             result = True
         self.assertFalse(result)
-
-def make_them_friends(author_one, author_two, existing_request):
-    # change status of a friend request
-    existing_request.accepted = True
-    existing_request.regected = False
-    # create instance of Friends
-    temp_dict = {"from_author" :existing_request.from_author , "to_author":existing_request.to_author}
-    # print(existing_request.from_author.pk)
-    serializer = FriendsSerializer(data=temp_dict)
-    serializer.create(temp_dict)
-    existing_request.delete()
-
-    if serializer.is_valid():
-        return Response(serializer.data)
-    else:
-        print(serializer.errors)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-def enroll_following(validated_data):
-    """TODO check duplicate here"""
-    serializer = FollowingSerializer(data=validated_data)
-    serializer.create(validated_data)
-    if serializer.is_valid():
-        return Response(serializer.data)
-    else:
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-def unfollow(validated_data):
-    try:
-        req = Following.objects.get(follower=validated_data.get("follower"), following=validated_data.get("following"))
-    except Following.DoesNotExist:
-        return False
-    req.delete()
-    return True

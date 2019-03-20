@@ -19,7 +19,7 @@ class Author(models.Model):
     def __str__(self):
         return self.userName
     def get_api_url(self,request=None):
-        return reverse("api-urls:authors",kwargs={'pk':self.pk},request=request)
+        return reverse("api-urls:author",kwargs={'pk':self.pk},request=request)
 
 class FriendRequest(models.Model):
     from_author= models.ForeignKey(Author,on_delete=models.CASCADE, related_name="friend_request_sent",null=True)
