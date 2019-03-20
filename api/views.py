@@ -38,8 +38,8 @@ class ListAuthors(APIView):
         if users_search is not "":
             test  =Friends.objects.all()
             print("here she is")
-            if(test):
-                print(test[0].author1)
+            #if(test):
+            #    print(test[0].author1)
             #print(queryset)
             queryset=Author.objects.filter(Q(userName__startswith=users_search))
             print("1")
