@@ -3,7 +3,7 @@ from rest_framework.urlpatterns import format_suffix_patterns
 from . import views
 from .api import RegisterAPI,LoginAPI,UserAPI
 from knox import views as knox_views
-from .views import ListAuthors,AuthorDetails,PostOfAuth,PublicPosts,PostOfAuthors,PostDetails,PostComments,FriendRequest
+from .views import ListAuthors,AuthorDetails,PostOfAuth,PublicPosts,PostOfAuthors,PostDetails,PostComments,ProfileOfAuth,FriendRequest
 
 
 urlpatterns = [
@@ -19,11 +19,13 @@ urlpatterns = [
 
     path('auth/logout',knox_views.LogoutView.as_view(),name='knox_logout'),
 
-    path('authors/', ListAuthors.as_view()),
+    path('authors/', ListAuthors.as_view(),name='authors'),
     #Retrieves this specific authors details
     path('authors/<pk>/', AuthorDetails.as_view(),name='authors'),
 
     path('author/posts/',PostOfAuth.as_view()),
+
+    path('author/profile/',ProfileOfAuth.as_view(),name='authors'),
 
 
     #All posts marked as public on the server

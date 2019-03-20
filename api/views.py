@@ -97,11 +97,10 @@ class ListAuthors(APIView):
 
     def get(self,request):
         authors=Author.objects.all().order_by('-pk')
-        serializer = AuthorSerializer(authors,many=True)
+        serializer = AuthorSerializer(authors,many=True,context={'request':request})
         return Response(serializer.data)
 
-    def get_serializer_context(self):
-        return {"request": self.request}
+    
 
 class AuthorDetails(APIView):
     """
@@ -122,7 +121,7 @@ class AuthorDetails(APIView):
         author=self.get_author(request,pk)
         if author=="error":
             return Response({"query":"posts","success":False,"message":"Cannot find author"},status=status.HTTP_200_OK)
-        serializer = AuthorSerializer(author)
+        serializer = AuthorSerializer(author,context={'request':request})
         return Response(serializer.data)
 
     def put(self, request,pk, format=None):
@@ -200,6 +199,19 @@ class PublicPosts(APIView):
         serializer = PostSerializer(post,many=True)
         return Response(serializer.data)
 
+class ProfileOfAuth(APIView):
+    """
+    API view to see profile of auth
+    """
+
+    #permission_classes = (IsAuthenticated,)
+    pagination_class= DefaultPageNumberPagination
+    def get(self, request,format=None):        
+        author = Author.objects.get(owner=request.user)
+        serializer = AuthorSerializer(author,context={'request':request})
+        return Response(serializer.data)
+    
+    
 
 
 class PostOfAuthors(APIView):
@@ -228,7 +240,7 @@ class PostOfAuthors(APIView):
             posts.append(serializer.data)
         serializer = PostSerializer(posts,many=True)
         return Response({"query":"posts","posts":posts},status=status.HTTP_200_OK)
-
+    
 
 
 class PostDetails(APIView):

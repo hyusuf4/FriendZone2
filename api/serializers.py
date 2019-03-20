@@ -8,6 +8,7 @@ from django.utils import timezone
 from datetime import datetime
 from django.db.models import Q
 from django.contrib.auth.models import Permission
+from rest_framework.relations import HyperlinkedIdentityField
  
 
 
@@ -25,7 +26,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self,validated_data):
         user=User.objects.create_user(validated_data['username'],validated_data['email'],validated_data['password'])
-        author=Author.objects.create(userName=validated_data['username'], password=validated_data['password'],owner=user)
+        author=Author.objects.create(userName=validated_data['username'], password=validated_data['password'],owner=user,hostName="https://project-cmput404.herokuapp.com")
         return user
 
 class LoginSerializer(serializers.Serializer):
@@ -44,8 +45,7 @@ class LoginSerializer(serializers.Serializer):
 
 
 class AuthorSerializer(serializers.ModelSerializer):
-    url= serializers.SerializerMethodField(read_only=True)
-    pk=serializers.UUIDField(read_only=True)
+    url=serializers.SerializerMethodField()
     firstName=serializers.CharField(required=False)
     lastName=serializers.CharField(required=False)
     userName=serializers.CharField(required=False)
@@ -53,7 +53,7 @@ class AuthorSerializer(serializers.ModelSerializer):
     githubUrl=serializers.URLField(required=False)
     class Meta:
         model = Author
-        fields=['url','pk','firstName','lastName','userName','hostName','githubUrl']
+        fields=['url','author_id','firstName','lastName','userName','hostName','githubUrl']
 
     def update(self, instance, validated_data):
         instance.firstName = validated_data.get('firstName', instance.firstName)
@@ -62,9 +62,9 @@ class AuthorSerializer(serializers.ModelSerializer):
         instance.githubUrl = validated_data.get('githubUrl', instance.githubUrl)
         instance.save()
         return instance
-
-    def get_url(self,obj):
-        return obj.hostName+"/api/author/"+str(obj.pk)
+    def get_url(self, obj):
+        request=self.context.get('request')
+        return obj.get_api_url(request=request)
 
 
 

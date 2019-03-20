@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 import uuid
 from django.contrib.auth.models import User
+from rest_framework.reverse import reverse
 
 # Create your models here.
 
@@ -17,6 +18,8 @@ class Author(models.Model):
 
     def __str__(self):
         return self.userName
+    def get_api_url(self,request=None):
+        return reverse("api-urls:authors",kwargs={'pk':self.pk},request=request)
 
 class FriendRequest(models.Model):
     from_author= models.ForeignKey(Author,on_delete=models.CASCADE, related_name="friend_request_sent",null=True)
