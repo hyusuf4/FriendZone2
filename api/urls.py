@@ -46,7 +46,7 @@ urlpatterns = [
     # Get all my friends
     path('api/authors/<authorid>/friends/', views.get_friends, name="get_global_friends"),
     # Get all my friends
-    path('api/uthors/<authorid>/local_friends/', views.get_friends_local, name="get_local_friends"),
+    path('api/authors/<authorid>/local_friends/', views.get_friends_local, name="get_local_friends"),
     # Ask if 2 authors are friends
     path('api/author/<authorid>/friends/<authorid2>/', views.check_friendship, name='friendship')
 ]
