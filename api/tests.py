@@ -40,8 +40,19 @@ def create_friend_request(author_one, author_two):
         created=timezone.now()
     )
 
-# reverse('renew-book-librarian', kwargs={'pk':self.test_bookinstance1.pk,}), {'renewal_date':valid_date_in_future})
-# self.client.defaults['HTTP_AUTHORIZATION'] = 'Basic ' + credentials
+class GetAllAuthorListViewTest(TestCase):
+    def test_get_authors(self):
+
+        data = {'username': 'u3','password': 'u3', 'email':'a@b.ca'}
+        response = self.client.post(reverse('api:signup'), data=data, format='json')
+        body = response.content.decode('utf-8')
+        body = json.loads(body)
+        credentials = body.get('token')
+        self.client.defaults['HTTP_AUTHORIZATION'] = 'Token ' + credentials
+        response = self.client.post('api:authors_list')
+        print(00000000, response.content, 11111111)
+        self.assertEqual(response.status_code, 404)
+
 class SignupViewTest(TestCase):
     def test_signup(self):
         # response = self.client.login(username="admin", password="admin")
@@ -54,8 +65,6 @@ class LoginViewTest(TestCase):
         # login first
         data = {'username': 'u3','password': 'u3', 'email':'a@b.ca'}
         response = self.client.post(reverse('api:signup'), data=data, format='json')
-
-        # body = JSONParser().parse(response.content.decode('utf-8'))
         body = response.content.decode('utf-8')
         body = json.loads(body)
         credentials = body.get('token')
@@ -74,7 +83,6 @@ class LoginViewTest(TestCase):
         body = response.content.decode('utf-8')
         body = json.loads(body)
         credentials = body.get('token')
-        print(3333333, credentials, 444444444)
         data = {'username': 'u3','password': 'u3'}
         self.client.defaults['HTTP_AUTHORIZATION'] = 'Token ' + credentials
         response = self.client.post(reverse('api:login'), data=data, format='json')
@@ -87,14 +95,100 @@ class FriendRequestViewTests(TestCase):
         a1.save()
         a2 = create_author(f_name="a2", l_name="a2", u_name="102", pwd=101)
         a2.save()
+        fr = create_friend_request(a1, a2)
+        fr.save()
+        make_them_friends(a1, a2, fr)
 
+        try:
+            check_user = Author.objects.get(pk=a2.pk)
+            #print("Saved")
+        except Exception as e:
+            print("Error!!")
+
+        # no friend request
+        result0 = False
+        try:
+            result0 = FriendRequest.objects.get(pk=fr.pk).exists()
+        except FriendRequest.DoesNotExist:
+            result0 = False
+        self.assertFalse(result0)
+        # have entry in friends
+        result = False
+        try:
+            result = Friends.objects.filter( Q(author1=a1, author2=a2) | Q(author2=a1, author1=a2)).exists()
+
+            self.assertTrue(result)
+            # print(111,Friends.objects.filter( Q(author1=a1), Q(author2=a2) | Q(author2=a1), Q(author1=a2)),222)
+        except Friends.DoesNotExist:
+            result = False
+        self.assertTrue(result)
 
     def test_create_duplicate_frequest(self):
-        pass
-    def test_make_friends(self):
-        pass
+        a1 = create_author(f_name="a1", l_name="a1", u_name="101", pwd=101)
+        a1.save()
+        a2 = create_author(f_name="a2", l_name="a2", u_name="102", pwd=101)
+        a2.save()
+        fr = create_friend_request(a1, a2)
+        fr.save()
+        make_them_friends(a1, a2, fr)
 
-def CheckFriendshipViewTests(TestCase):
+        try:
+            check_user = Author.objects.get(pk=a2.pk)
+            #print("Saved")
+        except Exception as e:
+            print("Error!!")
+
+        # no friend request
+        result0 = False
+        try:
+            result0 = FriendRequest.objects.get(pk=fr.pk).exists()
+        except FriendRequest.DoesNotExist:
+            result0 = False
+        self.assertFalse(result0)
+        # have entry in friends
+        result = False
+        try:
+            result = Friends.objects.filter( Q(author1=a1, author2=a2) | Q(author2=a1, author1=a2)).exists()
+
+            self.assertTrue(result)
+            # print(111,Friends.objects.filter( Q(author1=a1), Q(author2=a2) | Q(author2=a1), Q(author1=a2)),222)
+        except Friends.DoesNotExist:
+            result = False
+        self.assertTrue(result)
+    def test_make_friends(self):
+        a1 = create_author(f_name="a1", l_name="a1", u_name="101", pwd=101)
+        a1.save()
+        a2 = create_author(f_name="a2", l_name="a2", u_name="102", pwd=101)
+        a2.save()
+        fr = create_friend_request(a1, a2)
+        fr.save()
+        make_them_friends(a1, a2, fr)
+
+        try:
+            check_user = Author.objects.get(pk=a2.pk)
+            #print("Saved")
+        except Exception as e:
+            print("Error!!")
+
+        # no friend request
+        result0 = False
+        try:
+            result0 = FriendRequest.objects.get(pk=fr.pk).exists()
+        except FriendRequest.DoesNotExist:
+            result0 = False
+        self.assertFalse(result0)
+        # have entry in friends
+        result = False
+        try:
+            result = Friends.objects.filter( Q(author1=a1, author2=a2) | Q(author2=a1, author1=a2)).exists()
+
+            self.assertTrue(result)
+            # print(111,Friends.objects.filter( Q(author1=a1), Q(author2=a2) | Q(author2=a1), Q(author1=a2)),222)
+        except Friends.DoesNotExist:
+            result = False
+        self.assertTrue(result)
+
+class CheckFriendshipViewTests(TestCase):
     def test_existing_friendship(self):
         response = self.client.get(reverse('api:author/<authorid>/friends/<authorid2>/', kwargs={}))
 
