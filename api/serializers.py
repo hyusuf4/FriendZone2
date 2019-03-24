@@ -175,10 +175,11 @@ class PostSerializer(serializers.ModelSerializer):
     author=AuthorSerializer(required=False)
     content=serializers.CharField(required=False)
     title=serializers.CharField(required=False,max_length=50)
+    textType=serializers.CharField(default='S',max_length=1)
 
     class Meta:
         model = Post
-        fields = ['postid' ,'publicationDate','title','source' ,'origin','contentType','author','content','permission','comments','categories','unlisted','visibleTo']
+        fields = ['postid' ,'publicationDate','title','source' ,'origin','contentType','author','content','permission','comments','categories','unlisted','visibleTo', 'textType']
 
     def create(self, validated_data,author):
         new_instance = Post.objects.create(content=validated_data.get('content'),title=validated_data.get('title'), permission=validated_data.get('permission'),author=author,publicationDate=datetime.now())
