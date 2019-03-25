@@ -178,7 +178,11 @@ class PostSerializer(serializers.ModelSerializer):
     author=AuthorSerializer(required=False)
     content=serializers.CharField(required=False)
     title=serializers.CharField(required=False,max_length=50)
+<<<<<<< HEAD
     images=ImageSerializer(many=True,source="post_image",required=False)
+=======
+    
+>>>>>>> 8c640a6dc2e18138a90f173fcadb7cb25416cde1
 
     class Meta:
         model = Post
