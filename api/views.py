@@ -190,6 +190,7 @@ class PostOfAuth(APIView):
             page = self.paginator.paginate_queryset(v_posts,request)
             serializer=PostSerializer(page,many=True)
             posts.append(serializer.data)
+        print(posts)
         return self.paginator.get_paginated_response(posts,'posts')
 
 

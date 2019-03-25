@@ -178,11 +178,7 @@ class PostSerializer(serializers.ModelSerializer):
     author=AuthorSerializer(required=False)
     content=serializers.CharField(required=False)
     title=serializers.CharField(required=False,max_length=50)
-<<<<<<< HEAD
     images=ImageSerializer(many=True,source="post_image",required=False)
-=======
-    
->>>>>>> 8c640a6dc2e18138a90f173fcadb7cb25416cde1
 
     class Meta:
         model = Post
@@ -205,11 +201,12 @@ class PostSerializer(serializers.ModelSerializer):
                 visible=VisibleToPost.objects.create(post=new_instance,author=author,author_url=author.url)
         if validated_data.get('permission') == 'F':
             friends=Friends.objects.filter(Q(author1=author)| Q(author2=author))
+            VisibleToPost.objects.create(post=new_instance,author=author,author_url=author.url)
             for friend in friends:
                 if friend.author1 == author:
-                    new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author2)
+                    new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author2,author_url=friend.author2.url)
                 elif friend.author2 == author:
-                    new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author1)
+                    new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author1,author_url=friend.author1.url)
         elif validated_data.get('permission') == 'FH':
             friends=Friends.objects.filter(Q(author1=author)| Q(author2=author))
             for friend in friends:
