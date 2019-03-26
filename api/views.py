@@ -366,7 +366,7 @@ class PostComments(APIView):
             comments=self.get_comment(post)
             page=self.paginator.paginate_queryset(comments,request)
             serializer=CommentSerializer(comments,many=True)
-            return self.paginator.get_paginated_response(serializer,'comment')
+            return self.paginator.get_paginated_response(serializer.data,'comment')
 
     def post(self,request,pk,format=None):
         author=self.get_author(request)
