@@ -8,7 +8,7 @@ from rest_framework.reverse import reverse
 
 class Author(models.Model):
     author_id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
-    url=models.URLField(null=True)
+    url=models.URLField()
     firstName=models.CharField(max_length=30,blank=True,null=True)
     lastName=models.CharField(max_length=30)
     userName=models.CharField(max_length=30)
@@ -34,8 +34,10 @@ class FriendRequest(models.Model):
         return "You recieved a friend request from %s to %s"%(self.from_author, self.to_author)
 
 class Friends(models.Model):
-    author1=models.ForeignKey(Author,on_delete=models.CASCADE,related_name='friend1',null=True)
-    author2=models.ForeignKey(Author,on_delete=models.CASCADE,related_name='friend2',null=True)
+    author1=models.ForeignKey(Author,on_delete=models.CASCADE,related_name='friend1',null=True,blank=True)
+    author1_url=models.URLField(null=True,blank=True)
+    author2_url=models.URLField(null=True,blank=True)
+    author2=models.ForeignKey(Author,on_delete=models.CASCADE,related_name='friend2',null=True,blank=True)
     date=models.DateTimeField(blank=True, null=True)
 
 class Following(models.Model):
@@ -106,5 +108,10 @@ class Image(models.Model):
 
     post_id = models.ForeignKey(Post,related_name="post_image", on_delete=models.CASCADE,null=True)
     img = models.TextField()
+
+class Node(models.Model):
+    user=models.ForeignKey(User,on_delete=models.CASCADE)
+    sharePosts=models.BooleanField()
+    shareImages=models.BooleanField()
 
 
