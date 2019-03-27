@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Author, FriendRequest, Friends,Post,Comment,VisibleToPost,Categories, Following
+from .models import Author, FriendRequest, Friends,Post,Comment,VisibleToPost,Categories, Following,Image
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
@@ -27,6 +27,9 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self,validated_data):
         user=User.objects.create_user(validated_data['username'],validated_data['email'],validated_data['password'])
         author=Author.objects.create(userName=validated_data['username'], password=validated_data['password'],owner=user,hostName="https://project-cmput404.herokuapp.com")
+        auth=Author.objects.filter(owner=user)
+        url=auth[0].get_url(auth[0])
+        auth.update(url=url)
         return user
 
 class LoginSerializer(serializers.Serializer):
@@ -45,7 +48,6 @@ class LoginSerializer(serializers.Serializer):
 
 
 class AuthorSerializer(serializers.ModelSerializer):
-    url=serializers.SerializerMethodField()
     firstName=serializers.CharField(required=False)
     lastName=serializers.CharField(required=False)
     userName=serializers.CharField(required=False)
@@ -62,10 +64,6 @@ class AuthorSerializer(serializers.ModelSerializer):
         instance.githubUrl = validated_data.get('githubUrl', instance.githubUrl)
         instance.save()
         return instance
-    def get_url(self, obj):
-        request=self.context.get('request')
-        return obj.get_api_url(request=request)
-
 
 
 class FriendRequestSerializer(serializers.ModelSerializer):
@@ -125,10 +123,8 @@ class FriendsSerializer(serializers.ModelSerializer):
 class VisibleToPostSerializer(serializers.ModelSerializer):
     class Meta:
         model=VisibleToPost
-        fields=('post','author')
+        fields=['author_url']
 
-    def get_visible(post):
-        self.object.filter(post=post)
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -149,8 +145,15 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class CategoriesSerializer(serializers.ModelSerializer):
-    model=Categories
-    fields=('post','category')
+    class Meta:
+        model=Categories
+        fields=['category']
+
+class ImageSerializer(serializers.ModelSerializer):
+    img=serializers.CharField(required=False)
+    class Meta:
+        model=Image
+        fields=['img']
 
 class FollowingSerializer(serializers.ModelSerializer):
     class Meta:
@@ -170,18 +173,22 @@ class FollowingSerializer(serializers.ModelSerializer):
 class PostSerializer(serializers.ModelSerializer):
     publicationDate = serializers.DateTimeField(default=datetime.now())
     categories=CategoriesSerializer(many=True,source="post_categories",required=False)
-    comments= CommentSerializer(many=True,source='post',required=False)
+    comments= CommentSerializer(many=True,source='post_comment',required=False)
     visibleTo=VisibleToPostSerializer(many=True,source="visible_post",required=False)
     author=AuthorSerializer(required=False)
     content=serializers.CharField(required=False)
     title=serializers.CharField(required=False,max_length=50)
+    images=ImageSerializer(many=True,source="post_image",required=False)
 
     class Meta:
         model = Post
-        fields = ['postid' ,'publicationDate','title','source' ,'origin','contentType','author','content','permission','comments','categories','unlisted','visibleTo']
+        fields = ['postid' ,'publicationDate','title','source' ,'origin','contentType','author','content','permission','comments','categories','unlisted','visibleTo','images']
 
     def create(self, validated_data,author):
-        new_instance = Post.objects.create(content=validated_data.get('content'),title=validated_data.get('title'), permission=validated_data.get('permission'),author=author,publicationDate=datetime.now())
+        new_instance = Post.objects.create(content=validated_data.get('content'),title=validated_data.get('title'), permission=validated_data.get('permission'),author=author,publicationDate=datetime.now(),contentType=validated_data.get('contentType'))
+        if validated_data.get('images'):
+            for image in validated_data.get('images'):
+                Image.objects.create(post_id=new_instance,img=image['base64'])
         if validated_data.get('categories'):
             for category in validated_data.get('categories'):
                 categories=Categories.create(post=new_instance,category=category)
@@ -191,14 +198,15 @@ class PostSerializer(serializers.ModelSerializer):
         if validated_data.get('permission')== 'P':
             authors=Author.objects.all()
             for author in authors:
-                visible=VisibleToPost.objects.create(post=new_instance,author=author)
+                visible=VisibleToPost.objects.create(post=new_instance,author=author,author_url=author.url)
         if validated_data.get('permission') == 'F':
             friends=Friends.objects.filter(Q(author1=author)| Q(author2=author))
+            VisibleToPost.objects.create(post=new_instance,author=author,author_url=author.url)
             for friend in friends:
                 if friend.author1 == author:
-                    new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author2)
+                    new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author2,author_url=friend.author2.url)
                 elif friend.author2 == author:
-                    new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author1)
+                    new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author1,author_url=friend.author1.url)
         elif validated_data.get('permission') == 'FH':
             friends=Friends.objects.filter(Q(author1=author)| Q(author2=author))
             for friend in friends:
@@ -216,11 +224,5 @@ class PostSerializer(serializers.ModelSerializer):
         instance.contentType = validated_data.get('contentType', instance.contentType)
         instance.save()
         return instance
-
-
-
-
-# class ImageSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model=Image
-#         fields=('pk','post_id','img')
+    
+    

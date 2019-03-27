@@ -8,6 +8,7 @@ from rest_framework.reverse import reverse
 
 class Author(models.Model):
     author_id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
+    url=models.URLField()
     firstName=models.CharField(max_length=30,blank=True,null=True)
     lastName=models.CharField(max_length=30)
     userName=models.CharField(max_length=30)
@@ -18,8 +19,9 @@ class Author(models.Model):
 
     def __str__(self):
         return self.userName
-    def get_api_url(self,request=None):
-        return reverse("api-urls:author",kwargs={'pk':self.pk},request=request)
+    @classmethod
+    def get_url(self,obj):
+        return str(getattr(obj,'hostName'))+"/api/authors/"+str(getattr(obj,'author_id'))
 
 class FriendRequest(models.Model):
     from_author= models.ForeignKey(Author,on_delete=models.CASCADE, related_name="friend_request_sent",null=True)
@@ -32,8 +34,10 @@ class FriendRequest(models.Model):
         return "You recieved a friend request from %s to %s"%(self.from_author, self.to_author)
 
 class Friends(models.Model):
-    author1=models.ForeignKey(Author,on_delete=models.CASCADE,related_name='friend1',null=True)
-    author2=models.ForeignKey(Author,on_delete=models.CASCADE,related_name='friend2',null=True)
+    author1=models.ForeignKey(Author,on_delete=models.CASCADE,related_name='friend1',null=True,blank=True)
+    author1_url=models.URLField(null=True,blank=True)
+    author2_url=models.URLField(null=True,blank=True)
+    author2=models.ForeignKey(Author,on_delete=models.CASCADE,related_name='friend2',null=True,blank=True)
     date=models.DateTimeField(blank=True, null=True)
 
 class Following(models.Model):
@@ -67,7 +71,6 @@ class Post(models.Model):
     permission = models.CharField(max_length=2, choices=PERMISSION_OPTIONS, default='P')
     unlisted=models.BooleanField(default=False)
     author= models.ForeignKey(Author,related_name="auth",on_delete=models.CASCADE,null=True)
-
     def __str__(self):
         return self.title
 
@@ -78,7 +81,8 @@ class Categories(models.Model):
 
 class VisibleToPost(models.Model):
     post=models.ForeignKey(Post,related_name="visible_post",on_delete=models.CASCADE,null=True)
-    author=models.ForeignKey(Author,on_delete=models.CASCADE,null=True)
+    author=models.ForeignKey(Author,on_delete=models.CASCADE,null=True, blank=True)
+    author_url=models.URLField(null=True)
 
 
 class Comment(models.Model):
@@ -93,17 +97,21 @@ class Comment(models.Model):
     contentType = models.CharField(max_length=32, choices=contentTypeChoice,default='text/plain' )
     comment_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     author=models.ForeignKey(Author, on_delete=models.CASCADE,null=True)
-    postid=models.ForeignKey(Post,on_delete=models.CASCADE,null=True)
+    postid=models.ForeignKey(Post,related_name="post_comment",on_delete=models.CASCADE,null=True)
     published=models.DateTimeField()
 
     def __str__(self):
         return self.comment
 
 
+class Image(models.Model):
+
+    post_id = models.ForeignKey(Post,related_name="post_image", on_delete=models.CASCADE,null=True)
+    img = models.TextField()
+
+class Node(models.Model):
+    user=models.ForeignKey(User,on_delete=models.CASCADE)
+    sharePosts=models.BooleanField()
+    shareImages=models.BooleanField()
 
 
-
-# class Image(models.Model):
-
-#     post_id = models.ForeignKey(Post, on_delete=models.CASCADE,null=True)
-#     img = models.ImageField(null=True)

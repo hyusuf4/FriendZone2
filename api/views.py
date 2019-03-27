@@ -1,4 +1,4 @@
-from api.models import Author, FriendRequest, Friends,Post,Comment,VisibleToPost, Following
+from api.models import Author, FriendRequest, Friends,Post,Comment,VisibleToPost, Following,Node
 from api.serializers import AuthorSerializer, FriendRequestSerializer, FriendsSerializer,PostSerializer,CommentSerializer,VisibleToPostSerializer,CategoriesSerializer, FollowingSerializer
 from rest_framework import status
 from rest_framework.decorators import api_view,permission_classes
@@ -14,7 +14,7 @@ import sys
 from django.http import JsonResponse
 from django.db.models import Q
 from django.core import serializers
-from .pagination import DefaultPageNumberPagination
+from .pagination import CustomPagination,CommentPagination
 from rest_framework.settings import api_settings
 import json
 from django.utils import timezone
@@ -27,7 +27,6 @@ class ListAuthors(APIView):
 
     #permission_classes = (IsAuthenticated,)
     serializer_class=AuthorSerializer
-    pagination_class= DefaultPageNumberPagination
 
     def post(self,request,format=None):
         authors_to_pass=[]
@@ -193,7 +192,7 @@ class PostOfAuth(APIView):
     API view to list all posts visible to authenticated user
     Requires token authentication.
     """
-    pagination_class= DefaultPageNumberPagination
+    paginator= CustomPagination()
     #permission_classes = (IsAuthenticated,)
     def get_author(self,request):
         try:
@@ -204,21 +203,56 @@ class PostOfAuth(APIView):
 
 
     def get(self,request,format=None):
-        posts=[]
-        author=self.get_author(request)
-        if author=="error":
-            return Response({"query":"posts","success":False,"message":"Cannot find author"},status=status.HTTP_200_OK)
-        visiblePosts=VisibleToPost.objects.filter(author=author).values('post_id')
-        print(visiblePosts)
-        
-        for post in visiblePosts:
-            print('here are the posts id')
-            print(post['post_id'])
-            v_posts=Post.objects.filter(Q(postid=post['post_id'])).order_by('publicationDate')
-            serializer=PostSerializer(v_posts,many=True)
-            posts.append(serializer.data)
-        print(posts)
-        return JsonResponse({"query":"posts","posts":posts})
+        search=request.GET.get('author','')
+        if search!= '':
+            node=Node.objects.get(user=request.user)
+            friends=Friends.objects.filter(Q(author1_url=search)|Q(author2_url=search))
+            visiblePosts=VisibleToPost.objects.filter(Q(author_url=search)).values('post_id')
+            myfriends=[]
+            filterposts=[]
+            for friend in friends:
+                if friend.author1_url == search:
+                  myfriends.append(friend.author2)
+                elif friend.author2_url == search:
+                  myfriends.append(friend.author1) 
+            for friend in myfriends:
+                post=Post.objects.filter(Q(author=friend)).order_by('publicationDate')
+                if node.shareImages==False:
+                    if post.values('contentType')!="image/png;base64" or post.values('contentType')!="image/jpeg;base64":
+                        page = self.paginator.paginate_queryset(post,request)
+                        serializer=PostSerializer(page,many=True)
+                        filterposts.append(page)
+                else:
+                    page = self.paginator.paginate_queryset(post,request)
+                    filterposts.append(page)
+            for post in visiblePosts:
+                v_posts=Post.objects.filter(Q(postid=post['post_id'])).order_by('publicationDate')
+                if not node.shareImages==False:
+                    if post.values('contentType')!="image/png;base64" or post.values('contentType')!="image/jpeg;base64":
+                        page = self.paginator.paginate_queryset(post,request)
+                        serializer=PostSerializer(page,many=True)
+                        filterposts.append(page)
+                else:
+                    page = self.paginator.paginate_queryset(post,request)
+                    filterposts.append(page)
+            if not node.sharePosts:
+                return Response({"message":"Server Denied your Request"},status=status.HTTP_401_UNAUTHORIZED)
+            return self.paginator.get_paginated_response(serializer.data,'posts')
+
+        else:
+            author=self.get_author(request)
+            if author=="error":
+                return Response({"query":"posts","success":False,"message":"Cannot find author"},status=status.HTTP_404_NOT_FOUND)
+            visiblePosts=VisibleToPost.objects.filter(Q(author_url=author.url)| Q(author=author)).values('post_id')
+            if not visiblePosts:
+                return Response({"query":"posts","success":True,"message":"No posts visible to you"},status=status.HTTP_200_OK)
+            posts=[]
+            for post in visiblePosts:
+                v_posts=Post.objects.filter(Q(postid=post['post_id'])).order_by('publicationDate')
+                page = self.paginator.paginate_queryset(v_posts,request)
+                serializer=PostSerializer(page,many=True)
+                posts.append(serializer.data)
+            return self.paginator.get_paginated_response(posts,'posts')
 
 
     def get_serializer_context(self):
@@ -230,6 +264,7 @@ class PostOfAuth(APIView):
         if author=="error":
             return Response({"query":"posts","success":False,"message":"Cannot find author"},status=status.HTTP_200_OK)
         data=JSONParser().parse(request)
+        print(data)
         serializer=PostSerializer(Post,data=data)
         if serializer.is_valid():
             serializer.create(data,author)
@@ -244,11 +279,12 @@ class PublicPosts(APIView):
     """
 
     #permission_classes = (IsAuthenticated,)
-    pagination_class= DefaultPageNumberPagination
+    pagination_class= CustomPagination()
     def get(self, request,format=None):
         post = Post.objects.all().filter(permission="P")
-        serializer = PostSerializer(post,many=True)
-        return Response(serializer.data)
+        page=self.paginator.paginate_queryset(post,request)
+        serializer = PostSerializer(page,many=True)
+        return self.paginator.get_paginated_response(serializers,'posts')
 
 class ProfileOfAuth(APIView):
     """
@@ -256,10 +292,9 @@ class ProfileOfAuth(APIView):
     """
 
     #permission_classes = (IsAuthenticated,)
-    pagination_class= DefaultPageNumberPagination
     def get(self, request,format=None):
         author = Author.objects.get(owner=request.user)
-        serializer = AuthorSerializer(author,context={'request':request})
+        serializer = AuthorSerializer(author)
         return Response(serializer.data)
 
 
@@ -271,26 +306,36 @@ class PostOfAuthors(APIView):
     Requires token authentication.
     Only GET IS ALLOWED HERE
     """
-    def get_author(self,request):
+    paginator= CustomPagination()
+    #permission_classes = (IsAuthenticated,)
+    def get_author(self,query):
         try:
-            author=Author.objects.get(owner=request.user)
+            author=Author.objects.get(query)
         except Author.DoesNotExist:
             return "error"
         return author
-
-    #permission_classes = (IsAuthenticated,)
-    pagination_class= DefaultPageNumberPagination
+    
     def get(self, request,pk,format=None):
-        author=self.get_author(request)
+        search=request.GET.get('author','')     
+        auth_author=self.get_author(owner=request.user)
+        author=self.get_author(author_id=pk)
         if author=="error":
             return Response({"query":"posts","success":False,"message":"Cannot find author"},status=status.HTTP_200_OK)
         posts=[]
-        postids = VisibleToPost.objects.filter(author=author).values('post_id')
-        for id in postids:
-            post=Post.objects.filter(Q(postid=id['post_id']) & Q(author_id=pk))
-            posts.append(serializer.data)
-        serializer = PostSerializer(posts,many=True)
-        return Response({"query":"posts","posts":posts},status=status.HTTP_200_OK)
+        auth_posts=Posts.objects.filter(author=author).order_by("-publicationDate")
+        for post in auth_posts:
+            if search:
+                visible=VisibleToPost.objects.filter(Q(post_id=post.post_id) & Q(author_url=search))
+            else:
+                visible=VisibleToPost.objects.filter(Q(post_id=post.post_id) & Q(author=auth_author))
+            if visible:
+                page = self.paginator.paginate_queryset(post,request)
+                serializer = PostSerializer(page,many=True)
+                posts.append(serializer.data)
+        if not posts:
+            return Response({"query":"posts","success":True,"message":"Sorry No Posts Visible to You"},status=status.HTTP_200_OK)
+        else:
+            return self.paginator.get_paginated_response(posts,'posts')
 
 
 
@@ -301,7 +346,7 @@ class PostDetails(APIView):
 
     GET PUT DELETE OPERATIONS ALLOWED HERE
     """
-
+    pagination_class= CustomPagination
     def get_author(self,request):
         try:
             author=Author.objects.get(owner=request.user)
@@ -356,6 +401,7 @@ class PostComments(APIView):
 
     GET PUT DELETE OPERATIONS ALLOWED HERE
     """
+    paginator= CommentPagination()
     def get_author(self,request):
         try:
             author=Author.objects.get(owner=request.user)
@@ -376,22 +422,23 @@ class PostComments(APIView):
     def get(self, request,pk,format=None):
         post=self.get_post(pk)
         if post=="error":
-            return Response({"query":"posts","success":False,"message":"Cannot find post"},status=status.HTTP_200_OK)
+            return Response({"query":"posts","success":False,"message":"Cannot find post"},status=status.HTTP_404_NOT_FOUND)
         else:
             comments=self.get_comment(post)
+            page=self.paginator.paginate_queryset(comments,request)
             serializer=CommentSerializer(comments,many=True)
-            return Response({"query":"Get Post Comments","success":True,"comments":serializer.data},status=status.HTTP_200_OK)
+            return self.paginator.get_paginated_response(serializer.data,'comment')
 
     def post(self,request,pk,format=None):
         author=self.get_author(request)
         post=self.get_post(pk)
         if post=="error":
-            return Response({"query":"posts","success":False,"message":"Cannot find post"},status=status.HTTP_200_OK)
+            return Response({"query":"posts","success":False,"message":"Cannot find post"},status=status.HTTP_404_NOT_FOUND)
         data=JSONParser().parse(request)
         serializer=CommentSerializer(data=data)
         if serializer.is_valid():
             serializer.create(data,author,post)
-            return Response({"query":"Create Comment", "success":True ,"message":"Comment Created"}, status=status.HTTP_200_OK)
+            return Response({"query":"Create Comment", "success":True ,"message":"Comment Created"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
