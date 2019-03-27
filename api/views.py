@@ -47,7 +47,7 @@ class ListAuthors(APIView):
             searcher = Author.objects.filter(Q(userName=users_username))
             print("1")
             print(users_username)
-            pple_to_follow = Friends.objects.filter(Q(author1=searcher[0]))
+            pple_to_follow = FriendRequest.objects.filter(Q(from_author=searcher[0]) | Q(to_author=searcher[0]))
             print("here is the searcher")
             print(searcher[0])
             #queryset = queryset.filter(userName=users_search['users_search']).values_list('userName',flat=True)
@@ -62,6 +62,7 @@ class ListAuthors(APIView):
                 print(serializer.data) """
             print("here is the query set")
             print(queryset)
+            print(pple_to_follow)
 
             try:
                 for q in queryset:
@@ -75,40 +76,30 @@ class ListAuthors(APIView):
                 pass
 
             index_to_pop=[]
-            print("pple to follow")
-            print(authors_to_pass)
-            pple_he_is_following=[]
-            if(pple_to_follow):
-                for p in pple_to_follow:
-                    print("two people")
-                    print(p.author1)
-                    print(p.author2)
-
-                    for i in range(len(authors_to_pass)):
-                        print("...")
+            
+            for i in range(len(authors_to_pass)):
+                try:
+                    for p in pple_to_follow:
+                        print("asfasfff")
+                        print(type(p.from_author.userName))
                         print(type(authors_to_pass[i]['userName']))
-                        if(str(p.author2) == authors_to_pass[i]['userName']):
-                            print("CAME IN HERERRERERE")
+                        if(p.from_author.userName==authors_to_pass[i]['userName'] or p.to_author.userName==authors_to_pass[i]['userName']):
                             index_to_pop.append(i)
-
-
-
-                    serializer= FriendsSerializer(p)
-                    pple_he_is_following.append(serializer.data)
-            #for p in pple_to_follow:
-                #serializer = FollowingSerializer(p)
-               # print("here is the followers object")
-                #print(serializer)
+                except AttributeError:
+                    print("Attribute error...but should continue")
 
             for i in reversed(index_to_pop):
                 authors_to_pass.pop(i)
-            print("here is the list")
             print(authors_to_pass)
-            #print(pple_he_is_following)
-            return Response([authors_to_pass,pple_he_is_following])
-        else:
-            serializer = AuthorSerializer(authors,many=True)
-            return Response(serializer.data)
+
+
+
+                
+                    
+
+
+            return Response(authors_to_pass)
+
 
     def get(self,request):
         authors=Author.objects.all().order_by('-pk')
@@ -117,6 +108,44 @@ class ListAuthors(APIView):
 
     def get_serializer_context(self):
         return {"request": self.request}
+
+
+@api_view(['POST'])
+def notifications(request):
+    
+    if request.method != 'POST':
+        # invalid method
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    data = JSONParser().parse(request)
+    print("@@@@@@@@@@@@@@@@@")
+    print(data)
+    requester_id = data.get('from_author')
+
+
+    try:
+        author_object = FriendRequest.objects.filter(Q(to_author=requester_id) & Q(accepted=False) & Q(regected=False))
+        print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+        print(requester_id)
+        #print(author_object[0])
+        #searcher = Author.objects.filter(Q(userName=users_username))
+
+        author_list=[]
+        
+        for a in author_object:
+            print(a.from_author)
+            follower = Author.objects.get(userName=a.from_author)
+            serializer = AuthorSerializer(follower)
+            author_list.append(serializer.data)
+
+        
+
+        
+    except FriendRequest.DoesNotExist:
+        print("Error;friend filter didn't work")
+    print("*^*&^*&**^*^^*&^&*^*^&*^()*&)(&*(*&()&)(&)(*&)(*&")
+    print(author_list)
+    return Response(author_list)
 
 
 
@@ -181,10 +210,14 @@ class PostOfAuth(APIView):
             return Response({"query":"posts","success":False,"message":"Cannot find author"},status=status.HTTP_200_OK)
         visiblePosts=VisibleToPost.objects.filter(author=author).values('post_id')
         print(visiblePosts)
+        
         for post in visiblePosts:
-            v_posts=Post.objects.filter(Q(postid=post['post_id'])| Q(author=author))
+            print('here are the posts id')
+            print(post['post_id'])
+            v_posts=Post.objects.filter(Q(postid=post['post_id'])).order_by('publicationDate')
             serializer=PostSerializer(v_posts,many=True)
             posts.append(serializer.data)
+        print(posts)
         return JsonResponse({"query":"posts","posts":posts})
 
 
@@ -364,6 +397,7 @@ class PostComments(APIView):
 
 
 
+
 @api_view(['POST'])
 def send_friend_request(request):
 
@@ -440,7 +474,9 @@ def respond_to_friend_request(request):
         requester = Author.objects.get(pk=requester_id)
         requestee = Author.objects.get(pk=requestee_id)
         temp_dict = {"requester" :requestee , "requestee":requester}
-        enroll_following(temp_dict)
+        #enroll_following(temp_dict)
+        make_them_friends(requester_id, requestee_id, existing_request)
+        print("came asfasdfsa")
         return Response(status=status.HTTP_200_OK)
 
     temp_dict = {"from_author" :data.get("from_author") , "to_author":data.get("to_author"), "accepted":data.get("accepted") , "regected":data.get("regected")}
@@ -539,7 +575,14 @@ def make_them_friends(author_one, author_two, existing_request):
     # create instance of Friends
     serializer = FriendsSerializer(data=temp_dict)
     serializer.create(temp_dict)
-    existing_request.delete()
+    #existing_request.delete()
+    temp_dict2 = {"from_author" :existing_request.from_author , "to_author":existing_request.to_author,"accepted" :existing_request.accepted , "regected":existing_request.regected}
+    
+    serializer2 = FriendRequestSerializer(data=temp_dict2)
+    serializer2.update(existing_request,temp_dict2)
+
+
+
 
     if serializer.is_valid():
         return Response(serializer.data)
@@ -550,7 +593,7 @@ def enroll_following(validated_data):
     """TODO check duplicate here"""
     instance = Following.objects.filter(follower=validated_data.get("requester"), following=validated_data.get("requestee"))
     if instance.exists():
-        return Response(HTTP_200_OK)
+        return Response(status=status.HTTP_200_OK)
     # serializer = FollowingSerializer(data=validated_data)
     # serializer.create(validated_data)
     new_instance = Following.objects.create(\

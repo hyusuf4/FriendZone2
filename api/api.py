@@ -22,7 +22,7 @@ class RegisterAPI(generics.GenericAPIView):
         })
     @receiver(pre_save, sender=User)
     def set_new_user_inactive(sender, instance, **kwargs):
-        if instance._state.adding is True:
+        if instance._state.adding is True and not instance.is_superuser:
             print("Creating Inactive User")
             instance.is_active = False
         else:
