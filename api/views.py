@@ -20,6 +20,8 @@ from rest_framework.settings import api_settings
 import json
 from django.utils import timezone
 import requests
+import json
+import os
 
 class ListAuthors(APIView):
     """
@@ -443,21 +445,41 @@ class PostComments(APIView):
             return Response({"query":"Create Comment", "success":True ,"message":"Comment Created"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['GET'])
+def remote_posts(request):
+    # try:
+    #     author=Author.objects.get(owner=request.user)
+    # except Author.DoesNotExist:
+    #         return Response({"message":"cannot find author"},status=status.HTTP_400_BAD_REQUEST)
 
+    url="https://cmput404-front-test.herokuapp.com/api/posts"
+    request=requests.get(url,headers={"Authorization":"Basic eW9uYWVsX3RlYW06RUJYeFUmcXlXJDY4N2NNYiVtbUI=","Content-Type":"application/json"})
+    
+    return Response(request.json())
 
-
+    
 
 @api_view(['POST'])
 def send_friend_request(request):
 
+   
     if request.method != 'POST':
         # invalid method
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
     # insert new entry in database
     data = JSONParser().parse(request)
-    requester_id = data.get('from_author')
-    requestee_id = data.get('to_author')
-
+    remote=False
+    #checking if request is remote
+    if data.get('query')=='friendrequest':
+        requester_id = data.get('author')['id']
+        requestee_id = data.get('friend')['id']
+        requester_id=requester_id.split('/')[-1]
+        requestee_id=requestee_id.split('/')[-1]
+        print(requestee_id)
+        remote=True
+    else:
+        requester_id = data.get('from_author')
+        requestee_id = data.get('to_author')
     # TODO remote part
     # decomment it later
     # friend_request_to_remote(data)
@@ -470,6 +492,7 @@ def send_friend_request(request):
         requestee = Author.objects.get(pk=requestee_id)
         temp_dict = {"requester" :requester , "requestee":requestee}
         enroll_following(temp_dict)
+        
         return make_them_friends(requester_id, requestee_id, existing_request)
     except FriendRequest.DoesNotExist:
         pass
@@ -487,16 +510,36 @@ def send_friend_request(request):
         print("Error: duplicate instances in DB", file=sys.stderr)
 
     """fresh request, implement it"""
-    serializer = FriendRequestSerializer(data=data)
+    if not remote:
+        serializer = FriendRequestSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            response = Response(serializer.data)
+        else:
+            response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    #creating author objects for the individuals involved in the request and making a fresh request
+    if remote:
+        try:
+            requester = Author.objects.get(pk=requester_id)    
+        except Author.DoesNotExist:
+            requester=Author.objects.create(url=data.get('author')['url'],userName=data.get('author')['displayName'],hostName=data.get('author')['host'])
+        try:
+            requestee = Author.objects.get(pk=requestee_id)    
+        except Author.DoesNotExist:
+            requestee=Author.objects.create(url=data.get('friend')['url'],userName=data.get('friend')['displayName'],hostName=data.get('friend')['host'])
+        serializer = FriendRequestSerializer(data={"from_author":getattr(requester, "author_id"),
+        "to_author":getattr(requestee, "author_id")})
+        if serializer.is_valid():
+            serializer.save()
+            response = Response(serializer.data)
+        else:
+            response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    if serializer.is_valid():
-        serializer.save()
-        response = Response(serializer.data)
+        
     else:
-        response = Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    requester = Author.objects.get(pk=requester_id)
-    requestee = Author.objects.get(pk=requestee_id)
+        requester = Author.objects.get(pk=requester_id)
+        requestee = Author.objects.get(pk=requestee_id)
+    
     temp_dict = {"requester" :requester , "requestee":requestee}
     enroll_following(temp_dict)
 
@@ -576,7 +619,7 @@ def unfriend(request):
 
 @api_view(['GET'])
 def get_friends(request, authorid):
-    current_user_id = authorid;
+    current_user_id = authorid
 
     try:
         current_user = Author.objects.get(pk=authorid)
@@ -667,31 +710,48 @@ def unfollow(validated_data):
     req.delete()
     return True
 
-def friend_request_to_remote(dict_data):
+@api_view(['POST'])
+def friend_request_to_remote(request):
     # get author
     # check hostname
     # if remote
     # send request to remote
     # get response
+    data=JSONParser().parse(request)
+    author_id = data.get("from_author")
+    friend_id = data.get("to_author")
 
-    author_id = dict_data.get("from_author")
-    friend_id = dict_data.get("to_author")
-
-    author_obj = Author.objects.get(pk=author_id)
-    friend_obj = Author.objects.get(pk=friend_id)
+    author_request=requests.get(author_id)
+    friend_request=requests.get(friend_id)
+    
+    author_obj=author_request.json()
+    friend_obj=friend_request.json()
+   
+    
+   
+    
+    
+   
+    # author_obj = Author.objects.get(pk=author_id)
+    # friend_obj = Author.objects.get(pk=friend_id)
 
     """
     id, host, displayName, url
     """
-    author_dict = {"id": author_obj.author_id,"host": author_obj.hostName, "displayName": author_obj.userName, "url": author_obj.url}
-    friend_dict = {"id": friend_obj.author_id,"host": friend_obj.hostName, "displayName": friend_obj.userName, "url": friend_obj.url}
+    author_dict = {"id": author_obj['author_id'],"host": author_obj['hostName'], "displayName": author_obj['userName'], "url": author_obj['url']}
+    friend_dict = {"id": friend_obj['author_id'],"host": friend_obj['hostName'], "displayName": friend_obj['userName'], "url": friend_obj['url']}
     full_object = {"query":"friendrequest", "author": author_dict, "friend":friend_dict}
 
-    j_data = json.dumps(full_object, cls=DjangoJSONEncoder)
+    object_string=json.dumps(full_object)
     # TODO adpat URL to practical url
-    r = requests.post(url="https://project-cmput404.herokuapp.com/api/friendRequest", data=j_data)
-
-    return r
+    TILL_URL = os.environ.get("TILL_URL")
+    print(TILL_URL)
+    url='https://project-cmput404.herokuapp.com/api/friendRequest'
+    headers = {'content-type': 'application/json'}
+    r = requests.post(url,data=full_object,headers=headers) 
+    TILL_URL = os.environ.get("TILL_URL")
+    
+    return Response(r.text)
 
 
 
