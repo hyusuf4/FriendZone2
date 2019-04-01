@@ -200,7 +200,7 @@ class PostOfAuth(APIView):
         return get_object_or_404(Author,owner=request.user)
 
 
-     def get(self,request,format=None):
+    def get(self,request,format=None):
         search=request.GET.get('author','')
         if search!= '':
            return self.send_posts_for_remote(request,search)
@@ -352,7 +352,6 @@ class PostOfAuth(APIView):
             return False
         else:
             return True   
-
 
 class PublicPosts(APIView):
     """
