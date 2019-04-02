@@ -207,7 +207,7 @@ class PostOfAuth(APIView):
         else:
             nodes=Node.objects.all()
             author=self.get_author(request)
-            posts=[]
+            auth_posts=[]
             for node in nodes:
                 data={'username':'team1','password':'garnett21'}
                 json.dumps(data)
@@ -218,17 +218,16 @@ class PostOfAuth(APIView):
                 data=response.json()
                 if data.get('query')=='posts':
                     posts=data.get('posts')
-                    for post in post:
-                        post.append(post)
-                visiblePosts=VisibleToPost.objects.filter(Q(author_url=author.url)| Q(author=author)).values('post_id')
-                for post in visiblePosts:
-                    v_posts=Post.objects.filter(Q(postid=post['post_id'])).order_by('publicationDate')
-                    page = self.paginator.paginate_queryset(v_posts,request)
-                    serializer=PostSerializer(page,many=True)
-                newSerializer=list(serializer.data)
-                for i in posts:
+                    for post in posts:
+                        auth_posts.append(post)
+                serverPosts=self.get_server_posts(author,request)
+                if serverPosts:
+                    newSerializer=list(serverPosts)
+                elif serverPosts==None and len(auth_posts)==0:
+                    return Response({message:"Sorry No Posts Visble to You"},status=status.HTTP_200_OK)
+                for i in auth_posts:
                     newSerializer.append(i)
-        return self.paginator.get_paginated_response(newSerializer,'posts')
+            return self.paginator.get_paginated_response(newSerializer,'posts')
 
 
     def get_serializer_context(self):
@@ -242,7 +241,7 @@ class PostOfAuth(APIView):
         data=JSONParser().parse(request)
         serializer=PostSerializer(Post,data=data)
         if serializer.is_valid():
-            serializer.create(data,author)
+            serializer.create(data,author,request)
             return Response({"query":"Add Post", "success":True ,"message":"Added a New Post"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
      
@@ -311,17 +310,23 @@ class PostOfAuth(APIView):
         else:
             return Response({"query":"posts","success":True,"message":"No posts visible to you"},status=status.HTTP_200_OK)
     
-    #TODO find friends of friends so that we can send foaf posts to remote server
+    #TODO find friends of friends so that we can find FOAF posts
     def find_foaf(self,friends,search):
         direct_friends=[]
+        print(friends)
         foaf=[]
-        remote_author=Author.objects.get(url=search)
+        if type(search)==str:
+            remote_author=Author.objects.get(url=search)
+        else:
+            remote_author=Author.objects.get(author_id=search.author_id)
         direct_friends.append(remote_author)
         for friend in friends:
             if friend[0]['author1']:
+                print("Im")
                 author=Author.objects.get(author_id=friend[0]['author1'])
             else:
                 author=Author.objects.get(author_id=friend[0]['author2'])
+            
             indirectfriends=Friends.objects.filter(Q(author1=author)|Q(author2=author))
             direct_friends.append(author)
             for indirectfriend in indirectfriends:
@@ -329,6 +334,7 @@ class PostOfAuth(APIView):
                     foaf.append(getattr(indirectfriend,'author2'))
                 else:
                     foaf.append(getattr(indirectfriend,'author1'))
+            print("Here")
         for friend in foaf:
             if friend in direct_friends:
                 foaf.remove(friend)
@@ -351,7 +357,60 @@ class PostOfAuth(APIView):
         elif node.sharePosts==False and node.shareImages==False:
             return False
         else:
-            return True   
+            return True  
+    #retrieves all posts visble to author on host server
+    def get_server_posts(self,author,request):
+        filterposts=set()
+        myfriends=[]
+        friends=Friends.objects.filter(Q(author1=author)|Q(author2=author))
+        if friends:
+            if friends.values('author1')[0]['author1']== author:
+                myfriends.append(friends.values('author2'))
+            else:
+                myfriends.append(friends.values('author1'))
+        myPosts=Post.objects.filter(Q(author_id=author))
+        if myPosts:
+            page = self.paginator.paginate_queryset(myPosts,request)
+            filterposts.update(page)
+        public_posts=Post.objects.filter(Q(permission="P"))
+        if public_posts:
+            page = self.paginator.paginate_queryset(public_posts,request)
+            filterposts.update(page)
+        search=author
+        foaf=self.find_foaf(myfriends,search)
+        #Get all FOAF posts visible to user
+        for friend in foaf:
+            posts=Post.objects.filter(Q(author=friend) & Q(permission='FF')).order_by('publicationDate')
+            if posts:
+                page = self.paginator.paginate_queryset(posts,request)
+                filterposts.update(page)
+        # getting all post of friends with authenticated user
+        for friend in myfriends:
+            if friend[0]['author1']:
+                posts=Post.objects.filter(Q(author=friend[0]['author1'])).order_by('publicationDate')
+            else:
+                posts=Post.objects.filter(Q(author=friend[0]['author2'])).order_by('publicationDate')
+            if posts:
+                page = self.paginator.paginate_queryset(posts,request)
+                filterposts.update(page)
+            else:
+                pass
+        ## checking the visible to table to check if there are additional posts visible to user
+        visiblePosts=VisibleToPost.objects.filter(Q(author=author)).values('post_id')
+        if visiblePosts:
+            for post in visiblePosts:
+                v_posts=Post.objects.filter(Q(postid=post['post_id'])).order_by('publicationDate')
+                if v_posts:
+                    page = self.paginator.paginate_queryset(v_posts,request)
+                    filterposts.update(page)
+        else:
+            pass
+        if filterposts:
+            serializer=PostSerializer(filterposts,many=True)
+            return serializer.data
+        else:
+            return None
+             
 
 class PublicPosts(APIView):
     """
@@ -359,13 +418,15 @@ class PublicPosts(APIView):
     Requires token authentication.
     """
 
-    #permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated,)
     paginator= CustomPagination()
     def get(self, request,format=None):
-        post = Post.objects.all().filter(permission="P")
+        post=Post.objects.filter(permission="P")
         page=self.paginator.paginate_queryset(post,request)
         serializer = PostSerializer(page,many=True)
-        return self.paginator.get_paginated_response(serializer.data,'posts')
+        newSerializer=list(serializer.data)
+        return self.paginator.get_paginated_response(newSerializer,'posts')
+
 
 class ProfileOfAuth(APIView):
     """
