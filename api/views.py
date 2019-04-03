@@ -220,14 +220,17 @@ class PostOfAuth(APIView):
                     posts=data.get('posts')
                     for post in posts:
                         auth_posts.append(post)
-                serverPosts=self.get_server_posts(author,request)
-                if serverPosts:
-                    newSerializer=list(serverPosts)
-                elif serverPosts==None and len(auth_posts)==0:
-                    return Response({message:"Sorry No Posts Visble to You"},status=status.HTTP_200_OK)
+            serverPosts=self.get_server_posts(author,request)
+            print(serverPosts)
+            if serverPosts:
+                newSerializer=list(serverPosts)
                 for i in auth_posts:
                     newSerializer.append(i)
-            return self.paginator.get_paginated_response(newSerializer,'posts')
+                return self.paginator.get_paginated_response(newSerializer,'posts')
+            return Response({'message':"Sorry No Posts Visble to You"},status=status.HTTP_200_OK)
+            
+                    
+                
 
 
     def get_serializer_context(self):
@@ -360,6 +363,7 @@ class PostOfAuth(APIView):
             return True  
     #retrieves all posts visble to author on host server
     def get_server_posts(self,author,request):
+        print('Im here')
         filterposts=set()
         myfriends=[]
         friends=Friends.objects.filter(Q(author1=author)|Q(author2=author))
@@ -406,6 +410,7 @@ class PostOfAuth(APIView):
         else:
             pass
         if filterposts:
+            
             serializer=PostSerializer(filterposts,many=True)
             return serializer.data
         else:
