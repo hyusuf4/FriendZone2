@@ -326,10 +326,6 @@ class PostOfAuth(APIView):
         direct_friends=[]
         foaf=[]
         if type(search)==str:
-            data={"username":node.username,"password":node.password}
-            resp=requests.post(node.node_url+'/api/auth/login',data=json.dumps(data),headers={"content-type":"application/json"})
-            token=resp.json()['token']
-            print(token)
             request=requests.get(search,headers={"Content-Type":"application/json"})
             print(request.status_code==200)
             if request.status_code==200:
