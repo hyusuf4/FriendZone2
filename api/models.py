@@ -112,6 +112,10 @@ class Image(models.Model):
 class Node(models.Model):
     user=models.ForeignKey(User,on_delete=models.CASCADE)
     url=models.URLField(blank=True)
+    username=models.CharField(max_length=32, blank=True)
+    password=models.CharField(max_length=32, blank=True)
+    sharePosts=models.BooleanField()
+    shareImages=models.BooleanField()
     sharePosts=models.BooleanField()
     shareImages=models.BooleanField()
 

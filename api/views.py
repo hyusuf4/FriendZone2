@@ -206,6 +206,7 @@ class PostOfAuth(APIView):
            return self.send_posts_for_remote(request,search)
         else:
             nodes=Node.objects.all()
+            print(nodes)
             author=self.get_author(request)
             auth_posts=[]
             for node in nodes:
@@ -216,12 +217,13 @@ class PostOfAuth(APIView):
                 print(token)
                 response=requests.get(node.url+'/api/author/posts/?author='+author.url,headers={"Authorization":'Token '+token,"Content-Type":"application/json"})
                 data=response.json()
+                print(data)
                 if data.get('query')=='posts':
                     posts=data.get('posts')
                     for post in posts:
                         auth_posts.append(post)
+            
             serverPosts=self.get_server_posts(author,request)
-            print(serverPosts)
             if serverPosts:
                 newSerializer=list(serverPosts)
                 for i in auth_posts:
