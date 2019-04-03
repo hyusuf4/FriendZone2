@@ -8,17 +8,17 @@ from rest_framework.reverse import reverse
 
 class Author(models.Model):
     author_id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
-    url=models.URLField()
+    url=models.URLField(blank=True)
     firstName=models.CharField(max_length=30,blank=True,null=True)
-    lastName=models.CharField(max_length=30)
-    userName=models.CharField(max_length=30)
-    password=models.CharField(max_length=30)
-    hostName=models.URLField()
+    lastName=models.CharField(max_length=30,blank=True)
+    username=models.CharField(max_length=30,blank=True)
+    password=models.CharField(max_length=30,blank=True)
+    hostName=models.URLField(blank=True)
     owner=models.ForeignKey(User, on_delete=models.CASCADE,null=True)
-    githubUrl=models.URLField()
+    githubUrl=models.URLField(blank=True)
 
     def __str__(self):
-        return self.userName
+        return self.username
     @classmethod
     def get_url(self,obj):
         return str(getattr(obj,'hostName'))+"/api/authors/"+str(getattr(obj,'author_id'))
@@ -64,7 +64,7 @@ class Post(models.Model):
     postid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     source = models.URLField(null=True, blank=True)
     origin = models.URLField(null=True, blank=True)
-    contentType = models.CharField(max_length=32, choices=contentTypeChoice,default='text/plain' )
+    contentType = models.CharField(max_length=32, choices=contentTypeChoice)
     publicationDate=models.DateTimeField()
     content=models.TextField()
     title=models.CharField(max_length=50)
@@ -89,9 +89,6 @@ class Comment(models.Model):
     contentTypeChoice = (
         ('text/markdown', 'text/markdown'),
         ('text/plain', 'text/plain'),
-        ('application/base64', 'application/base64'),
-        ('image/png;base64', 'image/png;base64'),
-        ('image/jpeg;base64', 'image/jpeg;base64'),
     )
     comment=models.TextField()
     contentType = models.CharField(max_length=32, choices=contentTypeChoice,default='text/plain' )
@@ -103,20 +100,16 @@ class Comment(models.Model):
     def __str__(self):
         return self.comment
 
-
 class Image(models.Model):
 
     post_id = models.ForeignKey(Post,related_name="post_image", on_delete=models.CASCADE,null=True)
     img = models.TextField()
 
 class Node(models.Model):
+    
     user=models.ForeignKey(User,on_delete=models.CASCADE)
-    node_url=models.URLField(blank=True)
+    node_url=models.URLField()
     username=models.CharField(max_length=32, blank=True)
     password=models.CharField(max_length=32, blank=True)
     sharePosts=models.BooleanField()
     shareImages=models.BooleanField()
-    sharePosts=models.BooleanField()
-    shareImages=models.BooleanField()
-
-
