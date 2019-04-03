@@ -9,7 +9,6 @@ from datetime import datetime
 from django.db.models import Q
 from django.contrib.auth.models import Permission
 from rest_framework.relations import HyperlinkedIdentityField
-from .pagination import CustomPagination,CommentPagination
  
 
 
@@ -27,7 +26,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self,validated_data):
         user=User.objects.create_user(validated_data['username'],validated_data['email'],validated_data['password'])
-        author=Author.objects.create(username=validated_data['username'], password=validated_data['password'],owner=user,hostName="https://project-cmput404.herokuapp.com")
+        author=Author.objects.create(userName=validated_data['username'], password=validated_data['password'],owner=user,hostName="https://project-cmput404.herokuapp.com")
         auth=Author.objects.filter(owner=user)
         url=auth[0].get_url(auth[0])
         auth.update(url=url)
@@ -51,17 +50,17 @@ class LoginSerializer(serializers.Serializer):
 class AuthorSerializer(serializers.ModelSerializer):
     firstName=serializers.CharField(required=False)
     lastName=serializers.CharField(required=False)
-    username=serializers.CharField(required=False)
+    userName=serializers.CharField(required=False)
     hostName=serializers.URLField(read_only=True)
     githubUrl=serializers.URLField(required=False)
     class Meta:
         model = Author
-        fields=['url','author_id','firstName','lastName','username','hostName','githubUrl']
+        fields=['url','author_id','firstName','lastName','userName','hostName','githubUrl']
 
     def update(self, instance, validated_data):
         instance.firstName = validated_data.get('firstName', instance.firstName)
         instance.lastName = validated_data.get('lastName', instance.lastName)
-        instance.userName = validated_data.get('username', instance.username)
+        instance.userName = validated_data.get('userName', instance.userName)
         instance.githubUrl = validated_data.get('githubUrl', instance.githubUrl)
         instance.save()
         return instance
@@ -130,7 +129,6 @@ class VisibleToPostSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     published = serializers.DateTimeField(default=datetime.now())
-    pagination_class = CommentPagination
     class Meta:
         model= Comment
         fields=['pk','comment','author','postid','published','contentType']
@@ -157,7 +155,6 @@ class ImageSerializer(serializers.ModelSerializer):
         model=Image
         fields=['img']
 
-
 class FollowingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Following
@@ -182,22 +179,26 @@ class PostSerializer(serializers.ModelSerializer):
     content=serializers.CharField(required=False)
     title=serializers.CharField(required=False,max_length=50)
     images=ImageSerializer(many=True,source="post_image",required=False)
+
     class Meta:
         model = Post
         fields = ['postid' ,'publicationDate','title','source' ,'origin','contentType','author','content','permission','comments','categories','unlisted','visibleTo','images']
 
-    def create(self, validated_data,author,request):
-        new_instance = Post.objects.create(content=validated_data.get('content'),title=validated_data.get('title'), permission=validated_data.get('permission'),author=author,publicationDate=datetime.now(),contentType=validated_data.get('contentType'),origin="https://"+request.get_host())
-        if validated_data.get('categories'):
-            for category in validated_data.get('categories'):
-                categories=Categories.create(post=new_instance,category=category)
+    def create(self, validated_data,author):
+        new_instance = Post.objects.create(content=validated_data.get('content'),title=validated_data.get('title'), permission=validated_data.get('permission'),author=author,publicationDate=datetime.now(),contentType=validated_data.get('contentType'))
         if validated_data.get('images'):
             for image in validated_data.get('images'):
                 Image.objects.create(post_id=new_instance,img=image['base64'])
+        if validated_data.get('categories'):
+            for category in validated_data.get('categories'):
+                categories=Categories.create(post=new_instance,category=category)
         if validated_data.get('permission')=='M':
-            #TODO permitted authors find a way to do this
-            permitted_authors=validated_data.get('authors')
+            authors=Author.objects.get(author_id=author.author_id)
             visible=VisibleToPost.objects.create(post=new_instance,author=author)
+        if validated_data.get('permission')== 'P':
+            authors=Author.objects.all()
+            for author in authors:
+                visible=VisibleToPost.objects.create(post=new_instance,author=author,author_url=author.url)
         if validated_data.get('permission') == 'F':
             friends=Friends.objects.filter(Q(author1=author)| Q(author2=author))
             VisibleToPost.objects.create(post=new_instance,author=author,author_url=author.url)
@@ -208,17 +209,13 @@ class PostSerializer(serializers.ModelSerializer):
                     new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author1,author_url=friend.author1.url)
         elif validated_data.get('permission') == 'FH':
             friends=Friends.objects.filter(Q(author1=author)| Q(author2=author))
-            print(friends)
             for friend in friends:
-                print(friend.author2.hostName,request.get_host())
-                if friend.author1 == author and friend.author2.hostName.replace("https://","") == request.get_host() and friend.author1.hostName.replace("https://","") == request.get_host():
-                    print("here")
-                    new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author2,author_url=friend.author2.url)
-                elif friend.author2 == author and friend.author1.hostName.replace("https://","") == request.get_host() and friend.author2.hostName.replace("https://","")==request.get_host():
-                    print("overhere")
-                    new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author1,author_url=friend.author1.url)
+                if friend.author1 == author and friend.author2.hostName == 'https://project-cmput404.herokuapp.com/':
+                    new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author2)
+                elif friend.author2 == author and friend.author1.hostName == 'https://project-cmput404.herokuapp.com/':
+                    new_visible=VisibleToPost.objects.create(post=new_instance,author=friend.author1)
         return new_instance
-    
+
 
     def update(self, instance, validated_data):
         instance.title = validated_data.get('title', instance.title)
