@@ -626,6 +626,7 @@ class PostComments(APIView):
             return Response({"query":"posts","success":False,"message":"Cannot find post"},status=status.HTTP_404_NOT_FOUND)
         if data.get('query')=="addComment":
             response=requests.get(data.get('author'))
+            response=response.json()
             if response:
                 if self.remote_can_comment(post,response.url):
                     found_author,created=Author.objects.get_or_create(url=response['url'],author_id=response['author_id'],hostName=response['hostName'],username=response['username'],firstName=response['firstName'],lastName=response['lastName'])
