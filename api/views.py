@@ -628,7 +628,7 @@ class PostComments(APIView):
             response=requests.get(data.get('author'))
             if response:
                 if self.remote_can_comment(post,response.url):
-                    found_author,created=Author.objects.get_or_create(url=resp['url'],author_id=resp['author_id'],hostName=resp['hostName'],username=resp['username'],firstName=resp['firstName'],lastName=resp['lastName'])
+                    found_author,created=Author.objects.get_or_create(url=response['url'],author_id=response['author_id'],hostName=response['hostName'],username=response['username'],firstName=response['firstName'],lastName=response['lastName'])
                     comment= Comment.objects.create(comment=data.get('comment'),author=found_author,published=timezone.now(),postid=post,contentType= data.get('contentType'))
                     return Response({"query":"Create Comment", "success":True ,"message":"Comment Created"}, status=status.HTTP_201_CREATED)
                 else:
